@@ -9,88 +9,86 @@ brain  Brain;
 
 // VEXcode device constructors
 controller Controller1 = controller(primary);
+motor MotorA = motor(PORT1, ratio18_1, false);
+motor MotorB = motor(PORT2, ratio18_1, false);
+motor MotorC = motor(PORT3, ratio18_1, false);
+motor MotorD = motor(PORT4, ratio18_1, false);
 // VEXcode generated functions
 // define variable for remote controller enable/disable
 bool RemoteControlCodeEnabled = true;
 bool DrivetrainNeedsToBeStopped_Controller1 = true;
 
+/*
 int upDown = Controller1.Axis3.position();
 int leftRight = Controller1.Axis4.position();
 int botRot = Controller1.Axis1.position();
+*/
 
 /*
-***CONTROLS***
+int MotorAVel = Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
+int MotorBVel = -Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
+int MotorCVel = -Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
+int MotorDVel = Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
+*/
 
-AXIS 3 - MOVE VERTICALLY
-AXIS 4 - MOVE HORIZONTALLY
+void move(){
+  int MotorAVel = Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
+  int MotorBVel = -Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
+  int MotorCVel = -Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
+  int MotorDVel = Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
 
-AXIS 1 - ROTATE ROBOT
+  MotorA.setVelocity(MotorAVel, percent);
+  MotorB.setVelocity(MotorBVel, percent);
+  MotorC.setVelocity(MotorCVel, percent);
+  MotorD.setVelocity(MotorDVel, percent);
 
-R1 - SHOOT DISC
-L1 - 
+  MotorA.spin(forward);
+  MotorB.spin(forward);
+  MotorC.spin(forward);
+  MotorD.spin(forward);
+}
 
-A - SPIN ROLLER
-B - POWER FLY WHEEL
-X - EXPAND ROBOT
+/*
+[motor].setVelocity(drivetrainLeftSideSpeed, percent);
+MotorA.spin(forward);
 
-UP ARROW - TURN ON/OFF INTAKE MOTOR
+motor[A ] = +Ch3 +Ch4 +Ch1;
+motor[B ] = -Ch3 +Ch4 +Ch1;
+motor[C ] = -Ch3 -Ch4 +Ch1;
+motor[D] = +Ch3 -Ch4 +Ch1;
+*/
 
-
-
-
+/*
+***CONTROLS/MOTORS***
+AXIS 3 - MOVE VERTICALLY // 1-2
+AXIS 4 - MOVE HORIZONTALLY // 3-4
+AXIS 1 - ROTATE ROBOT // 1-4
+R1 - SHOOT DISC // 5
+A - SPIN ROLLER // 6
+B - POWER FLY WHEEL // 7-8
+X - EXPAND ROBOT // 9
+UP ARROW - TURN ON/OFF INTAKE MOTOR // 10
 */
 
 int rc_auto_loop_function_Controller1() {
  // process the controller input every 20 milliseconds
  // update the motors based on the input values
-  //***HOLONOMIC MOTOR CONTROLS (ORIENTED FACING THE ROBOT FORWARDS)
-  //FWD
-    //LFT | RGHT | LFT | RGHT
-  //BCK
-    //RGHT | LFT | RGHT | LFT
-  //LFT
-    //LFT | LFT | LFT | LFT
-  //RGHT
-    //RGHT | RGHT | RGHT | RGHT
 
  while(true) {
    if(RemoteControlCodeEnabled) {
      // calculate the drivetrain motor velocities from the controller joystick axies
-    
-    if (upDown > 5 || upDown < -5) {
-      //have bot move in vertical direction
-
-      DrivetrainNeedsToBeStopped_Controller1 = true;
-    }
-    if (leftRight > 5 || leftRight < -5) {
-      //have bot move in horizontal direction
-
-      DrivetrainNeedsToBeStopped_Controller1 = true;
-    }
-    if (botRot > 5 || botRot < -5) {
-      //have bot rotate in direction
-
-      DrivetrainNeedsToBeStopped_Controller1 = true;
-    }
-    
-    if (!upDown && !leftRight && !botRot){
-      if (DrivetrainNeedsToBeStopped_Controller1 == true){
-        //stop motor I
-        //stop motor II
-        //stop motor III
-        //stop motor IV
-      
-        DrivetrainNeedsToBeStopped_Controller1 = false;
-      }
-    }
+     move();
    }
  }
 }
-/**
+
+/*
+ *
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
  * 
  * This should be called at the start of your int main function.
  */
+
 void vexcodeInit( void ) {
   // nothing to initialize
   task rc_auto_loop_task_Controller1(rc_auto_loop_function_Controller1);
