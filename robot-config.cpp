@@ -9,66 +9,62 @@ brain  Brain;
 
 // VEXcode device constructors
 controller Controller1 = controller(primary);
-motor MotorA = motor(PORT1, ratio18_1, false);
-motor MotorB = motor(PORT2, ratio18_1, false);
-motor MotorC = motor(PORT3, ratio18_1, false);
-motor MotorD = motor(PORT4, ratio18_1, false);
+//driving motors
+motor motor_a = motor(PORT1, ratio18_1, false); 
+motor motor_b = motor(PORT2, ratio18_1, false);
+motor motor_c = motor(PORT3, ratio18_1, false);
+motor motor_d = motor(PORT4, ratio18_1, false);
+//other motors
+motor flywheel = motor(PORT7, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
+motor intake = motor(PORT8, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
+//sensors
+rotation odometry_encoder = rotation(PORT5, false);
+distance odometry_distance = distance(PORT6);
+
 // VEXcode generated functions
 // define variable for remote controller enable/disable
 bool RemoteControlCodeEnabled = true;
 bool DrivetrainNeedsToBeStopped_Controller1 = true;
 
 /*
-int upDown = Controller1.Axis3.position();
-int leftRight = Controller1.Axis4.position();
-int botRot = Controller1.Axis1.position();
-*/
+***CONTROLS***
+AXIS 3 - MOVE VERTICALLY // motors 1-2
+AXIS 4 - MOVE HORIZONTALLY // motors 3-4
+AXIS 1 - ROTATE ROBOT // motors 1-4
+R1 - SHOOT DISC // motor 5
+B - POWER FLY WHEEL // motors 7-8
+A - SPIN ROLLER // motor 6
+X - EXPAND ROBOT // motor 9
+UP ARROW - TURN ON/OFF INTAKE MOTOR // motor 10
+__ - Set motor type to break //motors 1-4
 
-/*
-int MotorAVel = Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
-int MotorBVel = -Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
-int MotorCVel = -Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
-int MotorDVel = Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
 */
 
 void move(){
-  int MotorAVel = Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
-  int MotorBVel = -Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
-  int MotorCVel = -Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
-  int MotorDVel = Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
+  int motor_a_vel = Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
+  int motor_b_vel = -Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
+  int motor_c_vel = -Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
+  int motor_d_vel = Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
 
-  MotorA.setVelocity(MotorAVel, percent);
-  MotorB.setVelocity(MotorBVel, percent);
-  MotorC.setVelocity(MotorCVel, percent);
-  MotorD.setVelocity(MotorDVel, percent);
+  motor_a.setVelocity(motor_a_vel, percent);
+  motor_b.setVelocity(motor_b_vel, percent);
+  motor_c.setVelocity(motor_c_vel, percent);
+  motor_d.setVelocity(motor_d_vel, percent);
 
-  MotorA.spin(forward);
-  MotorB.spin(forward);
-  MotorC.spin(forward);
-  MotorD.spin(forward);
+  motor_a.spin(forward);
+  motor_b.spin(forward);
+  motor_c.spin(forward);
+  motor_d.spin(forward);
+
+  /*
+  [motor].setVelocity(drivetrainLeftSideSpeed, percent);
+  motor_a.spin(forward);
+  motor[A ] = +Ch3 +Ch4 +Ch1;
+  motor[B ] = -Ch3 +Ch4 +Ch1;
+  motor[C ] = -Ch3 -Ch4 +Ch1;
+  motor[D] = +Ch3 -Ch4 +Ch1;
+  */
 }
-
-/*
-[motor].setVelocity(drivetrainLeftSideSpeed, percent);
-MotorA.spin(forward);
-
-motor[A ] = +Ch3 +Ch4 +Ch1;
-motor[B ] = -Ch3 +Ch4 +Ch1;
-motor[C ] = -Ch3 -Ch4 +Ch1;
-motor[D] = +Ch3 -Ch4 +Ch1;
-*/
-
-/*
-***CONTROLS/MOTORS***
-AXIS 3 - MOVE VERTICALLY // 1-2
-AXIS 4 - MOVE HORIZONTALLY // 3-4
-AXIS 1 - ROTATE ROBOT // 1-4
-R1 - SHOOT DISC // 5
-A - SPIN ROLLER // 6
-B - POWER FLY WHEEL // 7-8
-X - EXPAND ROBOT // 9
-UP ARROW - TURN ON/OFF INTAKE MOTOR // 10
-*/
 
 int rc_auto_loop_function_Controller1() {
  // process the controller input every 20 milliseconds
