@@ -1,19 +1,16 @@
 #include "vex.h"
 
 using namespace vex;
-using signature = vision::signature;
-using code = vision::code;
 
-// A global instance of brain used for printing to the V5 Brain screen
-brain  Brain;
-
+// A global instance of brain used for printing to the V5 brain screen
+brain Brain;
 // VEXcode device constructors
 controller Controller1 = controller(primary);
 //driving motors
 motor motor_a = motor(PORT1, ratio18_1, false); 
-motor motor_b = motor(PORT2, ratio18_1, false);
-motor motor_c = motor(PORT3, ratio18_1, false);
-motor motor_d = motor(PORT4, ratio18_1, false);
+motor motor_b = motor(PORT9, ratio18_1, false);
+motor motor_c = motor(PORT10, ratio18_1, false);
+motor motor_d = motor(PORT2, ratio18_1, false);
 //other motors
 motor flywheel = motor(PORT7, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
 motor intake = motor(PORT8, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
@@ -28,14 +25,20 @@ bool DrivetrainNeedsToBeStopped_Controller1 = true;
 
 /*
 ***CONTROLS***
+
 AXIS 3 - MOVE VERTICALLY // motors 1-2
 AXIS 4 - MOVE HORIZONTALLY // motors 3-4
 AXIS 1 - ROTATE ROBOT // motors 1-4
+
 R1 - SHOOT DISC // motor 5
 B - POWER FLY WHEEL // motors 7-8
+
 A - SPIN ROLLER // motor 6
+
 X - EXPAND ROBOT // motor 9
+
 UP ARROW - TURN ON/OFF INTAKE MOTOR // motor 10
+
 __ - Set motor type to break //motors 1-4
 
 */
@@ -55,15 +58,6 @@ void move(){
   motor_b.spin(forward);
   motor_c.spin(forward);
   motor_d.spin(forward);
-
-  /*
-  [motor].setVelocity(drivetrainLeftSideSpeed, percent);
-  motor_a.spin(forward);
-  motor[A ] = +Ch3 +Ch4 +Ch1;
-  motor[B ] = -Ch3 +Ch4 +Ch1;
-  motor[C ] = -Ch3 -Ch4 +Ch1;
-  motor[D] = +Ch3 -Ch4 +Ch1;
-  */
 }
 
 int rc_auto_loop_function_Controller1() {
