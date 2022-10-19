@@ -12,11 +12,14 @@ motor motor_b = motor(PORT9, ratio18_1, false);
 motor motor_c = motor(PORT10, ratio18_1, false);
 motor motor_d = motor(PORT2, ratio18_1, false);
 //other motors
-motor flywheel = motor(PORT7, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
-motor intake = motor(PORT8, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
+motor flywheel_1 = motor(PORT7, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
+motor flywheel_2 = motor(PORT8, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
+motor intake = motor(PORT11, ratio18_1, false); //18_1 is a placeholder, gear ratio could be more or less
 //sensors
 rotation odometry_encoder = rotation(PORT5, false);
 distance odometry_distance = distance(PORT6);
+// pi
+float pi = 3.141592;
 
 // VEXcode generated functions
 // define variable for remote controller enable/disable
@@ -40,10 +43,9 @@ X - EXPAND ROBOT // motor 9
 UP ARROW - TURN ON/OFF INTAKE MOTOR // motor 10
 
 __ - Set motor type to break //motors 1-4
-
 */
 
-void move(){
+void Move(){
   int motor_a_vel = Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
   int motor_b_vel = -Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
   int motor_c_vel = -Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
@@ -60,16 +62,55 @@ void move(){
   motor_d.spin(forward);
 }
 
-int rc_auto_loop_function_Controller1() {
- // process the controller input every 20 milliseconds
- // update the motors based on the input values
+void MoveAuton (float velocity_auton, float angle_auton, float rotation_auton){ // angle must be given in radians, velocity is given in percentage
 
- while(true) {
-   if(RemoteControlCodeEnabled) {
+  //while ()
+
+  // determine the magnatude of velocity applied by the front two wheels
+  int motor_a_c_vel = velocity_auton * sin(angle_auton); // wheel axis 1
+  int motor_b_d_vel = velocity_auton * cos(angle_auton); // wheel axis 2
+
+  // sets the velocities of the wheels to the magnatudes of the velocities
+  motor_a.setVelocity(motor_a_c_vel + rotation_auton, percent);
+  motor_b.setVelocity(motor_b_d_vel + rotation_auton, percent);
+  motor_c.setVelocity(motor_a_c_vel + rotation_auton, percent);
+  motor_d.setVelocity(motor_b_d_vel + rotation_auton, percent);
+
+  // spin the wheels in the angular velocities. 
+  motor_a.spin(forward);
+  motor_b.spin(forward);
+  motor_c.spin(forward);
+  motor_d.spin(forward);
+}
+
+int rc_auto_loop_function_Controller1() {
+  // process the controller input every 20 milliseconds
+  // update the motors based on the input values
+
+  bool flywheel_powered = false;
+  int flywheel_velocity = 0;
+
+  while(true) {
+    if(RemoteControlCodeEnabled) {
      // calculate the drivetrain motor velocities from the controller joystick axies
-     move();
-   }
- }
+      Move();
+      if (Controller1.ButtonB.pressing()) {
+        if(flywheel_powered == true){
+          // turns off flywheel
+          flywheel_powered = false;
+          // lower flywheel velocity
+          flywheel_velocity = 0;
+        } else {
+          // turns on flywheel
+          flywheel_powered = true;
+          // raises the flywheel velocity
+          flywheel_velocity = 100;
+        }
+      }
+      flywheel_1.spin(forward, flywheel_velocity, percent); // !!! CHANGE DIRECTION LATER !!!
+      flywheel_2.spin(reverse, flywheel_velocity, percent); // !!! CHANGE DIRECTION LATER !!!
+    }
+  }
 }
 
 /*
@@ -82,5 +123,4 @@ int rc_auto_loop_function_Controller1() {
 void vexcodeInit( void ) {
   // nothing to initialize
   task rc_auto_loop_task_Controller1(rc_auto_loop_function_Controller1);
-
 }
