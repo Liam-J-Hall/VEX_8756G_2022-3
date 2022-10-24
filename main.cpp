@@ -1,16 +1,5 @@
-/*----------------------------------------------------------------------------*/
-/*                                                                            */
-/*    Module:       main.cpp                                                  */
-/*    Author:       VEX                                                       */
-/*    Created:      Thu Sep 26 2019                                           */
-/*    Description:  Competition Template                                      */
-/*                                                                            */
-/*----------------------------------------------------------------------------*/
-
-// ---- START VEXCODE CONFIGURED DEVICES ----
-// ---- END VEXCODE CONFIGURED DEVICES ----
-
 #include "vex.h"
+#include "robot-config.cpp" // !! REMOVE IF NECESARY !!
 
 using namespace vex;
 
@@ -22,28 +11,56 @@ competition Competition;
 void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
-
-  // All activities that occur before the competition starts
-  // Example: clearing encoders, setting servo positions, ...
+  flywheel_1.setBrake(coast);
+  flywheel_2.setBrake(coast); 
 }
 
 void autonomous(void) {
-  // ..........................................................................
-  // Insert autonomous user code here.
-  // ..........................................................................
+  // power flywheel
+  flywheel_velocity = 75;
+  flywheel_1.spin(forward, flywheel_velocity, percent);
+  flywheel_2.spin(reverse, flywheel_velocity, percent); 
+  flywheel_powered = true;
 
-  //move to firing position
+  // move to firing position
+  MoveAuton(100, pi/2, 0, 33); // max velocity, 90 degrees, no rotation, 33 inches
+
+  // rotate towards goal
+  MoveAuton(100, 0, pi/2, 12); // !! LOOK INTO THE RADIUS OF ROBOT !!
+
+  // shoot 2 preloads
+  for (int i=0; i<2; i++){
+    // push indexer out
+    indexer.set(true);
+    // wait 20 milliseconds
+    wait(20, msec);
+    // pull indexer in
+    indexer.set(false);
+    //wait 20 milliseconds
+    wait(20, msec);
+  }
+
+  //turn on intake
+  intake.spin(forward, 65, percent);
   
-  //rotate towards goal
+  // move towards the stack of discs (3)
+  // collect stack of discs (3)
+  MoveAuton(0,0,0,0); // !! CHANGE NUMBERS !!
 
-  //fire preloads (2)
+  // move to firing position
+  MoveAuton(0,0,0,0); // !! CHANGE NUMBERS !!
 
-  //move towards the stack of discs (3)
-
-  //collect stack of discs (3)
-
-  //fire all stored discs consecutively towards the goal
-
+  // fire all stored discs (3) consecutively towards the goal
+  for (int i=0; i<3; i++){
+    // push indexer out
+    indexer.set(true);
+    // wait 20 milliseconds
+    wait(20, msec);
+    // pull indexer in
+    indexer.set(false);
+    //wait 20 milliseconds
+    wait(20, msec);
+  }
 }
 
 void usercontrol(void) {
@@ -52,11 +69,6 @@ void usercontrol(void) {
     // This is the main execution loop for the user control program.
     // Each time through the loop your program should update motor + servo
     // values based on feedback from the joysticks.
-
-    // ........................................................................
-    // Insert user code here. This is where you use the joystick values to
-    // update your motors, etc.
-    // ........................................................................
 
     wait(20, msec); // Sleep the task for a short amount of time to
                     // prevent wasted resources.
