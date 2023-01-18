@@ -51,9 +51,9 @@ double radians_to_degrees(double radians){
 
 int bang_bang_motor_controller(){
   
-  if (flywheel_r.velocity(rpm) < undershoot_target) {
+  if (flywheel_1.velocity(rpm) < undershoot_target) {
     flywheel_voltage += 0.2;
-  } else if (flywheel_r.velocity(rpm) > overshoot_target) {
+  } else if (flywheel_1.velocity(rpm) > overshoot_target) {
     flywheel_voltage -= 0.;
   }
 
@@ -155,9 +155,9 @@ void move_auton(double x_pos, double y_pos, double speed)
   // calculate angle that the robot must move to get from x_0 to x (and y_0 to y)
   double delta_y = y_pos - GPS.yPosition();
   double delta_x = x_pos - GPS.xPosition();
-  double travel_angle = atan(delta_y / delta_x) + pi/2;
-  double axis_1_speed = speed * sin(travel_angle);
-  double axis_2_speed = speed * cos(travel_angle);
+  double travel_angle = atan(delta_y / delta_x) + pi/4;
+  double axis_1_speed = speed * cos(fabs(travel_angle - GPS.heading()) - pi/4);
+  double axis_2_speed = speed * cos(fabs(travel_angle - GPS.heading()) + pi/4);
   
   while ((GPS.xPosition() <= x_pos + 15 && GPS.xPosition() >= x_pos + 15) && (GPS.yPosition() <= y_pos + 15 && GPS.yPosition() >= y_pos -15))
   {
