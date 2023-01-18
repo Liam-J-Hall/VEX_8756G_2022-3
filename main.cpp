@@ -154,6 +154,8 @@ double determine_angle_sign(double a_const_input){
   return a_const_output;
 }
 
+double GPS_offset = 15;
+
 void move_auton(double x_pos, double y_pos, double speed)
 {
   // calculate angle that the robot must move to get from x_0 to x (and y_0 to y)
@@ -163,7 +165,7 @@ void move_auton(double x_pos, double y_pos, double speed)
   double axis_1_speed;
   double axis_2_speed;
   
-  while ((GPS.xPosition() <! x_pos - 15 && GPS.xPosition() >! x_pos + 15) || !(GPS.yPosition() <! y_pos + 15 && GPS.yPosition() >! y_pos -15))
+  while ((GPS.xPosition() >! x_pos - GPS_offset && GPS.xPosition() <! x_pos + GPS_offset) || !(GPS.yPosition() <! y_pos + GPS_offset && GPS.yPosition() >! y_pos - GPS_offset))
   { 
     delta_y = y_pos - GPS.yPosition();
     delta_x = x_pos - GPS.xPosition();
