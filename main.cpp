@@ -70,6 +70,8 @@ void pre_auton(void) {
   
   Brain.Screen.clearScreen();
   GPS.calibrate();
+  inert.calibrate();
+  inert.setHeading(GPS.heading(), degrees);
   task bang_bang = task(bang_bang_motor_controller);
 
   // All activities that occur before the competition starts
@@ -162,21 +164,51 @@ void move_auton(double x_pos, double y_pos, double speed)
   double delta_y;
   double delta_x;
   double travel_angle;
-  double axis_1_speed;
-  double axis_2_speed;
+  double m_a_speed;
+  double m_b_speed;
+  double m_c_speed;
+  double m_d_speed;
+  double n_gps_heading; // initial heading
+  double d_gps_heading; //change in heading
+  double u_heading = GPS.heading(); // usable heading
+  double p_const = 0.2;
+  double distance_from_goal;
   
   while ((GPS.xPosition() >! x_pos - GPS_offset && GPS.xPosition() <! x_pos + GPS_offset) || !(GPS.yPosition() <! y_pos + GPS_offset && GPS.yPosition() >! y_pos - GPS_offset))
   { 
     delta_y = y_pos - GPS.yPosition();
     delta_x = x_pos - GPS.xPosition();
-    travel_angle = atan(delta_y / delta_x);
-    axis_1_speed = speed * cos(fabs(travel_angle - dtr(GPS.heading())) - pi/4);
-    axis_2_speed = speed * cos(fabs(travel_angle - dtr(GPS.heading())) + pi/4);
+    distance_from_goal = sqrt(pow(delta_y, 2) + pow(delta_x, 2));
+    travel_angle = atan2(delta_y, delta_x);
+    m_a_speed = speed * p_const * distance_from_goal / 400 * cos(fabs(travel_angle - (dtr(u_heading) - pi/4)));
+    m_b_speed = speed * p_const * distance_from_goal / 400 * cos(fabs(travel_angle - (dtr(u_heading) - 3*pi/4)));
+    m_c_speed = speed * p_const * distance_from_goal / 400 * cos(fabs(travel_angle - (dtr(u_heading) + 3*pi/4)));
+    m_d_speed = speed * p_const * distance_from_goal / 400 * cos(fabs(travel_angle - (dtr(u_heading) + pi/4)));
 
-    motor_a.spin(fwd, axis_1_speed, percent);
-    motor_b.spin(reverse, axis_2_speed, percent);
-    motor_c.spin(reverse, axis_1_speed, percent);
-    motor_d.spin(fwd, axis_2_speed, percent);
+    motor_a.spin(fwd, m_a_speed, percent);
+    motor_b.spin(fwd, m_b_speed, percent);
+    motor_c.spin(fwd, m_c_speed, percent);
+    motor_d.spin(fwd, m_d_speed, percent);
+
+    d_gps_heading = GPS.heading() - n_gps_heading;
+
+    if (d_gps_heading == 0 && (motor_a.velocity(rpm) > 0 || motor_b.velocity(rpm) > 0)) {
+      u_heading = inert.heading();
+    } else {
+      u_heading = GPS.heading();
+    }
+    
+    n_gps_heading = GPS.heading();
+
+    Brain.Screen.clearLine();
+    Brain.Screen.newLine();
+    Brain.Screen.print("(");
+    Brain.Screen.print(GPS.xPosition());
+    Brain.Screen.print(", ");
+    Brain.Screen.print(GPS.yPosition());
+    Brain.Screen.print(", angle:");
+    Brain.Screen.print(inert.heading());
+    Brain.Screen.print(")");
 
     wait(10, msec);
   }
@@ -194,7 +226,7 @@ void autonomous(void) {
   
   //motor_a.spin(fwd);
 
-  move_auton(0, 0, 85);
+  move_auton(0, 0, 60);
 
   // Power Flywheel
   //flywheel_1.spin(forward, 65, percent);
@@ -282,12 +314,17 @@ void autonomous(void) {
 /*                                                                           */
 /*  You must modify the code to add your own robot specific commands here.   */
 /*---------------------------------------------------------------------------*/
+
+double c_filter (double axis_value) {
+  return pow(axis_value, 3) / 10000;
+}
+
 extern void Move()
 {
-  int motor_a_vel = Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
-  int motor_b_vel = -Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
-  int motor_c_vel = -Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
-  int motor_d_vel = Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
+  int motor_a_vel = c_filter(Controller1.Axis3.position()) + c_filter(Controller1.Axis4.position()) + c_filter(Controller1.Axis1.position());
+  int motor_b_vel = -c_filter(Controller1.Axis3.position()) + c_filter(Controller1.Axis4.position()) + c_filter(Controller1.Axis1.position());
+  int motor_c_vel = -c_filter(Controller1.Axis3.position()) - c_filter(Controller1.Axis4.position()) + c_filter(Controller1.Axis1.position());
+  int motor_d_vel = c_filter(Controller1.Axis3.position()) - c_filter(Controller1.Axis4.position()) + c_filter(Controller1.Axis1.position());
 
   motor_a.spin(forward, motor_a_vel, percent);
   motor_b.spin(forward, motor_b_vel, percent);
@@ -302,8 +339,25 @@ void usercontrol(void) {
     // Each time through the loop your program should update motor + servo
     // values based on feedback from the joysticks.
 
-  if (Competition.isDriverControl() == true ){
+  if (Competition.isDriverControl() == true || Competition.isAutonomous() == true){
+    Brain.Screen.clearLine();
+    Brain.Screen.newLine();
+    Brain.Screen.print("(");
+    Brain.Screen.print(GPS.xPosition());
+    Brain.Screen.print(", ");
+    Brain.Screen.print(GPS.yPosition());
+    Brain.Screen.print(", angle:");
+    Brain.Screen.print(inert.heading());
+    Brain.Screen.print(")");
+
     Move();
+
+    if (Controller1.ButtonUp.pressing()) {
+      motor_a.spin(fwd, 50, percent);
+      motor_b.spin(reverse, 50, percent);
+      motor_c.spin(reverse, 50, percent);
+      motor_d.spin(fwd, 50, percent);
+    } 
   }
 
     // ........................................................................

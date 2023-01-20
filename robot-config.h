@@ -14,10 +14,10 @@ extern motor intake_1;
 extern motor intake_2;
 extern rotation odometry_rotation;
 extern distance odometry_distance;
-extern inertial inertial;
 extern pneumatics indexer;
 extern pneumatics expansion;
 extern gps GPS;
+extern inertial inert;
 extern rotation flywheel_r;
 
 extern void Move();
