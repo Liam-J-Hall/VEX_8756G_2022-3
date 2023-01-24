@@ -20,7 +20,7 @@ motor intake_1 = motor(PORT17, ratio18_1, false);
 motor intake_2 = motor(PORT18, ratio18_1, true);
 pneumatics indexer = pneumatics(Brain.ThreeWirePort.A);
 pneumatics expansion = pneumatics(Brain.ThreeWirePort.C);
-gps GPS = gps(PORT16, -80.00, 90.00, mm, 180);
+gps GPS = gps(PORT16, -80.00, 90.00, mm, 90);
 
 // VEXcode generated functions
 // define variable for remote controller enable/disable

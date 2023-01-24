@@ -144,21 +144,70 @@ as;ldkfja;sldkfjasd;flaksjd;lfkasldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;
 a;lsdkjfa;sldfjka;lskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;lskdjf;alskdjf
 */
 
-double determine_angle_sign(double a_const_input){
-  double a_const_output;
+void display_position()
+{
+    Brain.Screen.newLine();
 
-  if (GPS.heading() > 180 && GPS.heading() < 361){
-    a_const_output = -1 * a_const_input;
-  } else {
-    a_const_output = 1 * a_const_input;
-  }
-
-  return a_const_output;
+    Brain.Screen.print("(");
+    Brain.Screen.print(GPS.xPosition());
+    Brain.Screen.print(", ");
+    Brain.Screen.print(GPS.yPosition());
+    Brain.Screen.print(", angle:");
+    Brain.Screen.print(inert.heading());
+    Brain.Screen.print(")");
 }
+
+double m_angle[4] = {dtr(GPS.heading()) - pi/4, dtr(GPS.heading()) + pi/4, dtr(GPS.heading()) + 3*pi/4, dtr(GPS.heading()) - 3*pi/4};
 
 double GPS_offset = 15;
 
-void move_auton(double x_pos, double y_pos, double speed)
+double displacement;
+
+void move_fwd(double goal_revolutions, double speed, bool wait = false) 
+{
+  motor_a.resetPosition();
+  display_position();
+
+  motor_a.spinFor(fwd, goal_revolutions, turns, speed - 20, rpm, false);
+  motor_b.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+  motor_c.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+  motor_d.spinFor(fwd, goal_revolutions, turns, speed, rpm, wait);
+
+  display_position();
+}
+
+void move_rev(double goal_revolutions, double speed, bool wait = false) 
+{
+  display_position();
+
+  motor_a.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+  motor_b.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+  motor_c.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+  motor_d.spinFor(reverse, goal_revolutions, turns, speed, rpm, wait);
+  
+  display_position();
+}
+
+void strafe(bool is_left, double goal_revolutions, double speed, bool wait = false) 
+{
+  display_position();
+  if (!is_left)
+  {
+    motor_a.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+    motor_b.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+    motor_c.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+    motor_d.spinFor(reverse, goal_revolutions, turns, speed, rpm, wait);
+  } else {
+    motor_a.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+    motor_b.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+    motor_c.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+    motor_d.spinFor(fwd, goal_revolutions, turns, speed, rpm, wait);
+  }
+
+  display_position();
+}
+
+/*void move_auton(double x_pos, double y_pos, double speed)
 {
   // calculate angle that the robot must move to get from x_0 to x (and y_0 to y)
   double delta_y;
@@ -166,29 +215,31 @@ void move_auton(double x_pos, double y_pos, double speed)
   double travel_angle;
   double m_a_speed;
   double m_b_speed;
-  double m_c_speed;
-  double m_d_speed;
   double n_gps_heading; // initial heading
   double d_gps_heading; //change in heading
   double u_heading = GPS.heading(); // usable heading
   double p_const = 0.2;
   double distance_from_goal;
   
-  while ((GPS.xPosition() >! x_pos - GPS_offset && GPS.xPosition() <! x_pos + GPS_offset) || !(GPS.yPosition() <! y_pos + GPS_offset && GPS.yPosition() >! y_pos - GPS_offset))
-  { 
+  while ((GPS.xPosition() < x_pos - GPS_offset || GPS.xPosition() > x_pos + GPS_offset) || (GPS.yPosition() > y_pos + GPS_offset || GPS.yPosition() < y_pos - GPS_offset))
+  {
     delta_y = y_pos - GPS.yPosition();
     delta_x = x_pos - GPS.xPosition();
+    travel_angle = atan2(delta_x, delta_y);
+
+    if (y_pos < GPS.yPosition()) {
+      travel_angle += pi;
+    }
+
     distance_from_goal = sqrt(pow(delta_y, 2) + pow(delta_x, 2));
-    travel_angle = atan2(delta_y, delta_x);
-    m_a_speed = speed * p_const * distance_from_goal / 400 * cos(fabs(travel_angle - (dtr(u_heading) - pi/4)));
-    m_b_speed = speed * p_const * distance_from_goal / 400 * cos(fabs(travel_angle - (dtr(u_heading) - 3*pi/4)));
-    m_c_speed = speed * p_const * distance_from_goal / 400 * cos(fabs(travel_angle - (dtr(u_heading) + 3*pi/4)));
-    m_d_speed = speed * p_const * distance_from_goal / 400 * cos(fabs(travel_angle - (dtr(u_heading) + pi/4)));
+
+    m_a_speed = speed * cos(fabs(travel_angle - pi/4 - (dtr(u_heading))));
+    m_b_speed = speed * cos(fabs(travel_angle + pi/4 - (dtr(u_heading))));
 
     motor_a.spin(fwd, m_a_speed, percent);
     motor_b.spin(fwd, m_b_speed, percent);
-    motor_c.spin(fwd, m_c_speed, percent);
-    motor_d.spin(fwd, m_d_speed, percent);
+    motor_c.spin(reverse, m_a_speed, percent);
+    motor_d.spin(reverse, m_b_speed, percent);
 
     d_gps_heading = GPS.heading() - n_gps_heading;
 
@@ -200,17 +251,66 @@ void move_auton(double x_pos, double y_pos, double speed)
     
     n_gps_heading = GPS.heading();
 
-    Brain.Screen.clearLine();
-    Brain.Screen.newLine();
-    Brain.Screen.print("(");
-    Brain.Screen.print(GPS.xPosition());
-    Brain.Screen.print(", ");
-    Brain.Screen.print(GPS.yPosition());
-    Brain.Screen.print(", angle:");
-    Brain.Screen.print(inert.heading());
-    Brain.Screen.print(")");
-
     wait(10, msec);
+  }
+
+  motor_a.stop();
+  motor_b.stop();
+  motor_c.stop();
+  motor_d.stop();
+}*/
+
+bool is_within_bounds (double x_bound, double y_bound, double error) {
+  if (x_bound + error < GPS.xPosition(mm) || y_bound + error < GPS.yPosition(mm) || x_bound - error > GPS.xPosition(mm) || y_bound - error > GPS.yPosition(mm))
+  {
+    return true;
+  } 
+  else 
+  {
+    return false;
+  }
+}
+
+double d_x;
+double d_y;
+
+double travel_angle;
+
+double m_a_speed;
+double m_b_speed;
+double m_c_speed;
+double m_d_speed;
+double bot_orientation;
+
+void move_auton (double x_goal, double y_goal, double speed){
+  
+
+  while (is_within_bounds(x_goal, y_goal, 20))
+  {
+    d_x = x_goal - GPS.xPosition(mm);
+    d_y = y_goal - GPS.yPosition(mm);
+    
+    travel_angle = atan2(d_x, d_y);
+    bot_orientation = dtr(GPS.heading());
+
+    if (bot_orientation < 0) {
+      bot_orientation += 2*pi;
+    }
+
+    if (d_y < 0){
+      travel_angle += pi;
+    }
+    
+    m_a_speed = speed * cos(fabs((bot_orientation + pi/4) - travel_angle));
+    m_b_speed = speed * cos(fabs((bot_orientation + 7*pi/4) - travel_angle));
+    m_c_speed = speed * cos(fabs((bot_orientation + 5*pi/4) - travel_angle));
+    m_d_speed = speed * cos(fabs((bot_orientation + 3*pi/4) - travel_angle));
+    motor_a.spin(fwd, m_a_speed, percent);
+    motor_b.spin(fwd, m_b_speed, percent);
+    motor_c.spin(fwd, m_c_speed, percent);
+    motor_d.spin(fwd, m_d_speed, percent);
+
+    wait(100, msec);
   }
 
   motor_a.stop();
@@ -224,9 +324,17 @@ void autonomous(void) {
   // Insert autonomous user code here.
   // ..........................................................................
   
-  //motor_a.spin(fwd);
+  //display_position();
+  
+  move_auton(0, 0, 50);
 
-  move_auton(0, 0, 60);
+  //motor_a.spin(fwd);
+  //intake_1.spinFor(forward, 15, turns, 100, rpm, false);
+  //intake_2.spinFor(forward, 15, turns, 100, rpm, false);
+  //move_fwd(3, 150, true);
+  
+  //strafe(false, 1, 100, true);
+  //move_auton(0, 0, 60);
 
   // Power Flywheel
   //flywheel_1.spin(forward, 65, percent);
