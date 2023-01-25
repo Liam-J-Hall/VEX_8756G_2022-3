@@ -331,7 +331,7 @@ void move_auton (double x_goal, double y_goal, double speed){
 //assumes zero slipping
 //direction is forward -> turn to right; backward -> left
 //angle in degrees
-void turn_angle(directionType direction, double angle_to_turn){
+void turn_angle(directionType direction, double angle_to_turn, bool stop = true){
 
   //angle that the wheel needs to turn for a supplied angle
   //based on the calculation change in distance = change in angle * radius
@@ -341,17 +341,17 @@ void turn_angle(directionType direction, double angle_to_turn){
     motor_a.spinFor(direction, wheel_angle, degrees, false);
     motor_b.spinFor(direction, wheel_angle, degrees, false);
     motor_c.spinFor(direction, wheel_angle, degrees, false);
-    motor_d.spinFor(direction, wheel_angle, degrees, wait);
+    motor_d.spinFor(direction, wheel_angle, degrees, stop);
 }
 
 //change from current position
 //delta_x and delta_y measured in inches
-void move_auton_rel_delta_xy(double delta_x, double delta_y){
+void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
 
     //degrees that the wheels must turn to reach x
-    double wheel_angle_ac = (delta_x/WHEEL_RADIUS) * (180/pi);
+    double wheel_angle_ac = (delta_y/WHEEL_RADIUS) * (180/pi);
     //degrees that the wheels must turn to reach y
-    double wheel_angle_db = (delta_y/WHEEL_RADIUS)  * (180/pi);
+    double wheel_angle_db = (delta_x/WHEEL_RADIUS)  * (180/pi);
 
     //move the robot to position
     //x component motors
@@ -359,23 +359,23 @@ void move_auton_rel_delta_xy(double delta_x, double delta_y){
     motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
     //y component motors
     motor_b.spinFor(forward, wheel_angle_db, degrees, false);
-    motor_d.spinFor(reverse, wheel_angle_db, degrees, true);
+    motor_d.spinFor(reverse, wheel_angle_db, degrees, stop);
 }
 
-void move_auton_delta_xy(double heading, double delta_x, double delta_y){
+void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool stop = true){
 
   //heading relative in order to find the 
   double rel_heading =  heading;
   double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
   //relative to robot change in x
-  double rel_delta_x = rel_heading_magnitude*sin( dtr(rel_heading) );
+  double rel_delta_x = rel_heading_magnitude*cos( dtr(rel_heading) );
   //relative to robot change in y
-  double rel_delta_y = rel_heading_magnitude*cos( dtr(rel_heading) );
+  double rel_delta_y = rel_heading_magnitude*sin( dtr(rel_heading) );
 
- //degrees that the wheels must turn to reach x
-    double wheel_angle_ac = (rel_delta_x/WHEEL_RADIUS) * (180/pi);
-    //degrees that the wheels must turn to reach y
-    double wheel_angle_db = (rel_delta_y/WHEEL_RADIUS)  * (180/pi);
+ //degrees that the wheels must turn to reach ys
+    double wheel_angle_ac = (rel_delta_y/WHEEL_RADIUS) * (180/pi);
+    //degrees that the wheels must turn to reach x
+    double wheel_angle_db = (rel_delta_x/WHEEL_RADIUS)  * (180/pi);
 
     //move the robot to position
     //x component motors
@@ -383,7 +383,7 @@ void move_auton_delta_xy(double heading, double delta_x, double delta_y){
     motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
     //y component motors
     motor_b.spinFor(forward, wheel_angle_db, degrees, false);
-    motor_d.spinFor(reverse, wheel_angle_db, degrees, true);
+    motor_d.spinFor(reverse, wheel_angle_db, degrees, stop);
     }
 
 //stop all 4 drivebase motors
