@@ -387,6 +387,19 @@ void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool st
     motor_d.spinFor(reverse, wheel_angle_db, degrees, stop);
     }
 
+//converts the GPS from [0,180] and [-180,0] to [0,360] to be more usable
+double GPSfix(double heading){
+  if(heading<0){
+    return heading + 360;
+  }
+}
+
+//function for moving to absolute coordinates on the field
+void move_auton_xy(double x, double y, bool stop = true){
+    
+    move_auton_delta_xy(GPSfix(GPS.heading())+135, (x-GPS.xPosition())/25.4, (y-GPS.yPosition())/25.4, stop);
+}
+
 //stop all 4 drivebase motors
 void drive_stop(){
   motor_a.stop();
