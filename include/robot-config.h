@@ -14,9 +14,10 @@ extern motor intake_1;
 extern motor intake_2;
 extern rotation odometry_rotation;
 extern distance odometry_distance;
-extern inertial inertial;
 extern pneumatics indexer;
+extern pneumatics expansion;
 extern gps GPS;
+extern inertial inert;
 extern rotation flywheel_r;
 
 extern void Move();
@@ -27,6 +28,8 @@ extern double overshoot_target;
 extern double undershoot_target;
 extern bool spin_flywheel;
 
+extern const double WHEEL_RADIUS;
+extern const double ROBOT_RADIUS;
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
  * 

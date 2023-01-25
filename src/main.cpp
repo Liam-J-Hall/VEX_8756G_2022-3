@@ -45,8 +45,19 @@ double pi = 3.1415926535;
 /*  not every time that the robot is disabled.                               */
 /*---------------------------------------------------------------------------*/
 
+//radius of the wheel on the drive base in inches
+const double WHEEL_RADIUS = 3.5/2;
+
+//radius of the robot from wheel to center in inches
+const double ROBOT_RADIUS = 15/2;
+
+
 double radians_to_degrees(double radians){
   return radians * 180 / pi;
+}
+
+double dtr(double degrees){
+  return degrees * pi / 180;
 }
 
 int bang_bang_motor_controller(){
@@ -66,6 +77,8 @@ void pre_auton(void) {
   
   Brain.Screen.clearScreen();
   GPS.calibrate();
+  inert.calibrate();
+  inert.setHeading(GPS.heading(), degrees);
   task bang_bang = task(bang_bang_motor_controller);
 
   // All activities that occur before the competition starts
@@ -138,37 +151,243 @@ as;ldkfja;sldkfjasd;flaksjd;lfkasldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;
 a;lsdkjfa;sldfjka;lskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;lskdjf;alskdjf
 */
 
-double determine_angle_sign(double a_const_input){
-  double a_const_output;
+void display_position()
+{
+    Brain.Screen.newLine();
 
-  if (GPS.heading() > 180 && GPS.heading() < 361){
-    a_const_output = -1 * a_const_input;
-  } else {
-    a_const_output = 1 * a_const_input;
-  }
-
-  return a_const_output;
+    Brain.Screen.print("(");
+    Brain.Screen.print(GPS.xPosition());
+    Brain.Screen.print(", ");
+    Brain.Screen.print(GPS.yPosition());
+    Brain.Screen.print(", angle:");
+    Brain.Screen.print(inert.heading());
+    Brain.Screen.print(")");
 }
 
-void move_auton(double x_pos, double y_pos, double speed)
-{
-  // calculate angle that the robot must move to get from x_0 to x (and y_0 to y)
-  double delta_y = y_pos - GPS.yPosition();
-  double delta_x = x_pos - GPS.xPosition();
-  double travel_angle = atan(delta_y / delta_x) + pi/4;
-  double axis_1_speed = speed * cos(fabs(travel_angle - GPS.heading()) - pi/4);
-  double axis_2_speed = speed * cos(fabs(travel_angle - GPS.heading()) + pi/4);
-  
-  while ((GPS.xPosition() <= x_pos + 15 && GPS.xPosition() >= x_pos + 15) && (GPS.yPosition() <= y_pos + 15 && GPS.yPosition() >= y_pos -15))
-  {
-    motor_a.spin(fwd, axis_1_speed, percent);
-    motor_b.spin(reverse, axis_2_speed, percent);
-    motor_c.spin(reverse, axis_1_speed, percent);
-    motor_d.spin(fwd, axis_2_speed, percent);
+double m_angle[4] = {dtr(GPS.heading()) - pi/4, dtr(GPS.heading()) + pi/4, dtr(GPS.heading()) + 3*pi/4, dtr(GPS.heading()) - 3*pi/4};
 
-    wait(20, msec);
+double GPS_offset = 15;
+
+double displacement;
+
+void move_fwd(double goal_revolutions, double speed, bool wait = false) 
+{
+  motor_a.resetPosition();
+  display_position();
+
+  motor_a.spinFor(fwd, goal_revolutions, turns, speed - 20, rpm, false);
+  motor_b.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+  motor_c.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+  motor_d.spinFor(fwd, goal_revolutions, turns, speed, rpm, wait);
+
+  display_position();
+}
+
+void move_rev(double goal_revolutions, double speed, bool wait = false) 
+{
+  display_position();
+
+  motor_a.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+  motor_b.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+  motor_c.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+  motor_d.spinFor(reverse, goal_revolutions, turns, speed, rpm, wait);
+  
+  display_position();
+}
+
+void strafe(bool is_left, double goal_revolutions, double speed, bool wait = false) 
+{
+  display_position();
+  if (!is_left)
+  {
+    motor_a.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+    motor_b.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+    motor_c.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+    motor_d.spinFor(reverse, goal_revolutions, turns, speed, rpm, wait);
+  } else {
+    motor_a.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+    motor_b.spinFor(reverse, goal_revolutions, turns, speed, rpm, false);
+    motor_c.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
+    motor_d.spinFor(fwd, goal_revolutions, turns, speed, rpm, wait);
   }
 
+  display_position();
+}
+
+/*void move_auton(double x_pos, double y_pos, double speed)
+{
+  // calculate angle that the robot must move to get from x_0 to x (and y_0 to y)
+  double delta_y;
+  double delta_x;
+  double travel_angle;
+  double m_a_speed;
+  double m_b_speed;
+  double n_gps_heading; // initial heading
+  double d_gps_heading; //change in heading
+  double u_heading = GPS.heading(); // usable heading
+  double p_const = 0.2;
+  double distance_from_goal;
+  
+  while ((GPS.xPosition() < x_pos - GPS_offset || GPS.xPosition() > x_pos + GPS_offset) || (GPS.yPosition() > y_pos + GPS_offset || GPS.yPosition() < y_pos - GPS_offset))
+  {
+    delta_y = y_pos - GPS.yPosition();
+    delta_x = x_pos - GPS.xPosition();
+    travel_angle = atan2(delta_x, delta_y);
+
+    if (y_pos < GPS.yPosition()) {
+      travel_angle += pi;
+    }
+
+    distance_from_goal = sqrt(pow(delta_y, 2) + pow(delta_x, 2));
+
+    m_a_speed = speed * cos(fabs(travel_angle - pi/4 - (dtr(u_heading))));
+    m_b_speed = speed * cos(fabs(travel_angle + pi/4 - (dtr(u_heading))));
+
+    motor_a.spin(fwd, m_a_speed, percent);
+    motor_b.spin(fwd, m_b_speed, percent);
+    motor_c.spin(reverse, m_a_speed, percent);
+    motor_d.spin(reverse, m_b_speed, percent);
+
+    d_gps_heading = GPS.heading() - n_gps_heading;
+
+    if (d_gps_heading == 0 && (motor_a.velocity(rpm) > 0 || motor_b.velocity(rpm) > 0)) {
+      u_heading = inert.heading();
+    } else {
+      u_heading = GPS.heading();
+    }
+    
+    n_gps_heading = GPS.heading();
+
+    wait(10, msec);
+  }
+
+  motor_a.stop();
+  motor_b.stop();
+  motor_c.stop();
+  motor_d.stop();
+}*/
+
+bool is_within_bounds (double x_bound, double y_bound, double error) {
+  if (x_bound + error < GPS.xPosition(mm) || y_bound + error < GPS.yPosition(mm) || x_bound - error > GPS.xPosition(mm) || y_bound - error > GPS.yPosition(mm))
+  {
+    return true;
+  } 
+  else 
+  {
+    return false;
+  }
+}
+
+double d_x;
+double d_y;
+
+double travel_angle;
+
+double m_a_speed;
+double m_b_speed;
+double m_c_speed;
+double m_d_speed;
+double bot_orientation;
+
+void move_auton (double x_goal, double y_goal, double speed){
+  
+
+  while (is_within_bounds(x_goal, y_goal, 20))
+  {
+    d_x = x_goal - GPS.xPosition(mm);
+    d_y = y_goal - GPS.yPosition(mm);
+    
+    travel_angle = atan2(d_x, d_y);
+    bot_orientation = dtr(GPS.heading());
+
+    if (bot_orientation < 0) {
+      bot_orientation += 2*pi;
+    }
+
+    if (d_y < 0){
+      travel_angle += pi;
+    }
+    
+    m_a_speed = speed * cos(fabs((bot_orientation + pi/4) - travel_angle));
+    m_b_speed = speed * cos(fabs((bot_orientation + 7*pi/4) - travel_angle));
+    m_c_speed = speed * cos(fabs((bot_orientation + 5*pi/4) - travel_angle));
+    m_d_speed = speed * cos(fabs((bot_orientation + 3*pi/4) - travel_angle));
+    motor_a.spin(fwd, m_a_speed, percent);
+    motor_b.spin(fwd, m_b_speed, percent);
+    motor_c.spin(fwd, m_c_speed, percent);
+    motor_d.spin(fwd, m_d_speed, percent);
+
+    wait(100, msec);
+  }
+
+  motor_a.stop();
+  motor_b.stop();
+  motor_c.stop();
+  motor_d.stop();
+}
+
+
+//turns the robot the provided degrees
+//assumes zero slipping
+//direction is forward -> turn to right; backward -> left
+//angle in degrees
+void turn_angle(directionType direction, double angle_to_turn, bool stop = true){
+
+  //angle that the wheel needs to turn for a supplied angle
+  //based on the calculation change in distance = change in angle * radius
+  double wheel_angle  = angle_to_turn * (ROBOT_RADIUS/WHEEL_RADIUS);
+  
+  //turn all 4 motors to turn robot
+    motor_a.spinFor(direction, wheel_angle, degrees, false);
+    motor_b.spinFor(direction, wheel_angle, degrees, false);
+    motor_c.spinFor(direction, wheel_angle, degrees, false);
+    motor_d.spinFor(direction, wheel_angle, degrees, stop);
+}
+
+//change from current position
+//delta_x and delta_y measured in inches
+void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
+
+    //degrees that the wheels must turn to reach x
+    double wheel_angle_ac = (delta_y/WHEEL_RADIUS) * (180/pi);
+    //degrees that the wheels must turn to reach y
+    double wheel_angle_db = (delta_x/WHEEL_RADIUS)  * (180/pi);
+
+    //move the robot to position
+    //x component motors
+    motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
+    motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
+    //y component motors
+    motor_b.spinFor(forward, wheel_angle_db, degrees, false);
+    motor_d.spinFor(reverse, wheel_angle_db, degrees, stop);
+}
+
+void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool stop = true){
+
+  //heading relative in order to find the 
+  double rel_heading =  heading;
+  double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
+  //relative to robot change in x
+  double rel_delta_x = rel_heading_magnitude*cos( dtr(rel_heading) );
+  //relative to robot change in y
+  double rel_delta_y = rel_heading_magnitude*sin( dtr(rel_heading) );
+
+ //degrees that the wheels must turn to reach ys
+    double wheel_angle_ac = (rel_delta_y/WHEEL_RADIUS) * (180/pi);
+    //degrees that the wheels must turn to reach x
+    double wheel_angle_db = (rel_delta_x/WHEEL_RADIUS)  * (180/pi);
+
+    //move the robot to position
+    //x component motors
+    motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
+    motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
+    //y component motors
+    motor_b.spinFor(forward, wheel_angle_db, degrees, false);
+    motor_d.spinFor(reverse, wheel_angle_db, degrees, stop);
+    }
+
+//stop all 4 drivebase motors
+void drive_stop(){
   motor_a.stop();
   motor_b.stop();
   motor_c.stop();
@@ -180,9 +399,25 @@ void autonomous(void) {
   // Insert autonomous user code here.
   // ..........................................................................
   
-  //motor_a.spin(fwd);
+  //move_auton_rel_delta_xy(10, 0);
+  move_auton_delta_xy(135, 10, 0);
+  /*
+  //motor_a.spinFor(forward, 720, degrees, false);
+  //motor_c.spinFor(reverse, 720, degrees, wait);
+  //move_auton_rel_delta_xy(10, 0);
+  //drive_stop();
 
-  move_auton(100, 100, 10);
+  //display_position();
+  
+  //move_auton(0, 0, 50);
+
+  //motor_a.spin(fwd);
+  //intake_1.spinFor(forward, 15, turns, 100, rpm, false);
+  //intake_2.spinFor(forward, 15, turns, 100, rpm, false);
+  //move_fwd(3, 150, true);
+  
+  //strafe(false, 1, 100, true);
+  //move_auton(0, 0, 60);
 
   // Power Flywheel
   //flywheel_1.spin(forward, 65, percent);
@@ -257,8 +492,8 @@ void autonomous(void) {
   MoveAuton(100, atan(1.75/5), sqrt(5*5 + 1.75*1.75));
 
   // use roller
-  intake.spinTo(radians_to_degrees(2*pi), degrees);*/
-
+  intake.spinTo(radians_to_degrees(2*pi), degrees);
+*/
 }
 
 /*---------------------------------------------------------------------------*/
@@ -270,12 +505,17 @@ void autonomous(void) {
 /*                                                                           */
 /*  You must modify the code to add your own robot specific commands here.   */
 /*---------------------------------------------------------------------------*/
+
+double c_filter (double axis_value) {
+  return pow(axis_value, 3) / 10000;
+}
+
 extern void Move()
 {
-  int motor_a_vel = Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
-  int motor_b_vel = -Controller1.Axis3.position() + Controller1.Axis4.position() + Controller1.Axis1.position();
-  int motor_c_vel = -Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
-  int motor_d_vel = Controller1.Axis3.position() - Controller1.Axis4.position() + Controller1.Axis1.position();
+  int motor_a_vel = c_filter(Controller1.Axis3.position()) + c_filter(Controller1.Axis4.position()) + c_filter(Controller1.Axis1.position());
+  int motor_b_vel = -c_filter(Controller1.Axis3.position()) + c_filter(Controller1.Axis4.position()) + c_filter(Controller1.Axis1.position());
+  int motor_c_vel = -c_filter(Controller1.Axis3.position()) - c_filter(Controller1.Axis4.position()) + c_filter(Controller1.Axis1.position());
+  int motor_d_vel = c_filter(Controller1.Axis3.position()) - c_filter(Controller1.Axis4.position()) + c_filter(Controller1.Axis1.position());
 
   motor_a.spin(forward, motor_a_vel, percent);
   motor_b.spin(forward, motor_b_vel, percent);
@@ -290,8 +530,25 @@ void usercontrol(void) {
     // Each time through the loop your program should update motor + servo
     // values based on feedback from the joysticks.
 
-  if (Competition.isDriverControl() == true ){
+  if (Competition.isDriverControl() == true || Competition.isAutonomous() == true){
+    Brain.Screen.clearLine();
+    Brain.Screen.newLine();
+    Brain.Screen.print("(");
+    Brain.Screen.print(GPS.xPosition());
+    Brain.Screen.print(", ");
+    Brain.Screen.print(GPS.yPosition());
+    Brain.Screen.print(", angle:");
+    Brain.Screen.print(inert.heading());
+    Brain.Screen.print(")");
+
     Move();
+
+    if (Controller1.ButtonUp.pressing()) {
+      motor_a.spin(fwd, 50, percent);
+      motor_b.spin(reverse, 50, percent);
+      motor_c.spin(reverse, 50, percent);
+      motor_d.spin(fwd, 50, percent);
+    } 
   }
 
     // ........................................................................

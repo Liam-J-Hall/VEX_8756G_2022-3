@@ -9,6 +9,7 @@ brain  Brain;
 
 // VEXcode device constructors
 controller Controller1 = controller(primary);
+inertial inert = inertial(PORT1);
 motor motor_a = motor(PORT12, ratio18_1, false);
 motor motor_b = motor(PORT13, ratio18_1, false);
 motor motor_c = motor(PORT14, ratio18_1, false);
@@ -18,7 +19,8 @@ motor flywheel_2 = motor(PORT20, ratio18_1, false);
 motor intake_1 = motor(PORT17, ratio18_1, false);
 motor intake_2 = motor(PORT18, ratio18_1, true);
 pneumatics indexer = pneumatics(Brain.ThreeWirePort.A);
-gps GPS = gps(PORT16, 130.00, 135.00, mm, -90);
+pneumatics expansion = pneumatics(Brain.ThreeWirePort.C);
+gps GPS = gps(PORT16, -80.00, 90.00, mm, 90);
 
 // VEXcode generated functions
 // define variable for remote controller enable/disable
@@ -92,6 +94,12 @@ int rc_auto_loop_function_Controller1() {
       indexer.open();
     } else {
       indexer.close();
+    }
+
+    if (Controller1.ButtonLeft.pressing()) {
+      expansion.close();
+    } else {
+      expansion.open();
     }
 
     /*Brain.Screen.print(flywheel_1.velocity(percent));
