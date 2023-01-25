@@ -326,6 +326,7 @@ void move_auton (double x_goal, double y_goal, double speed){
   motor_d.stop();
 }
 
+
 //turns the robot the provided degrees
 //assumes zero slipping
 //direction is forward -> turn to right; backward -> left
@@ -337,25 +338,50 @@ void turn_angle(directionType direction, double angle_to_turn){
   double wheel_angle  = angle_to_turn * (ROBOT_RADIUS/WHEEL_RADIUS);
   
   //turn all 4 motors to turn robot
-    motor_a.spinFor(direction, wheel_angle, degrees);
-    motor_b.spinFor(direction, wheel_angle, degrees);
-    motor_c.spinFor(direction,wheel_angle, degrees);
-    motor_d.spinFor(direction, wheel_angle, degrees, true);
+    motor_a.spinFor(direction, wheel_angle, degrees, false);
+    motor_b.spinFor(direction, wheel_angle, degrees, false);
+    motor_c.spinFor(direction, wheel_angle, degrees, false);
+    motor_d.spinFor(direction, wheel_angle, degrees, wait);
 }
 
-//change from current position 
-void move_auton_delta_xy(double delta_x, double delta_y){
+//change from current position
+//delta_x and delta_y measured in inches
+void move_auton_rel_delta_xy(double delta_x, double delta_y){
 
     //degrees that the wheels must turn to reach x
+    double wheel_angle_ac = (delta_x/WHEEL_RADIUS) * (180/pi);
+    //degrees that the wheels must turn to reach y
+    double wheel_angle_db = (delta_y/WHEEL_RADIUS)  * (180/pi);
+
+    //move the robot to position
+    //x component motors
+    motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
+    motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
+    //y component motors
+    motor_b.spinFor(forward, wheel_angle_db, degrees, false);
+    motor_d.spinFor(reverse, wheel_angle_db, degrees, wait);
+}
+
+void move_auton_delta_xy(double heading, double delta_x, double delta_y){
+
+  //heading relative in order to find the 
+  double rel_heading =  10;
+  //relative to robot change in x
+  double rel_delta_x = 10;
+  //relative to robot change in y
+  double rel_delta_y = 10;
+
+  //degrees that the wheels must turn to reach x
     double wheel_angle_ac = delta_x/WHEEL_RADIUS;
     //degrees that the wheels must turn to reach y
     double wheel_angle_db = delta_y/WHEEL_RADIUS;
 
+
     //move the robot to position
-    motor_a.spinFor(forward, wheel_angle_ac, degrees);
-    motor_b.spinFor(reverse, wheel_angle_ac, degrees);
-    motor_c.spinFor(forward, wheel_angle_db, degrees);
-    motor_d.spinFor(reverse, wheel_angle_db, degrees, true);
+    motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
+    //motor_b.spinFor(forward, wheel_angle_ac, degrees, false);
+    motor_c.spinFor(reverse, wheel_angle_db, degrees, wait);
+    //motor_d.spinFor(reverse, wheel_angle_db, degrees, wait);
 }
 
 //stop all 4 drivebase motors
@@ -371,6 +397,13 @@ void autonomous(void) {
   // Insert autonomous user code here.
   // ..........................................................................
   
+  move_auton_rel_delta_xy(10, 0);
+  /*
+  //motor_a.spinFor(forward, 720, degrees, false);
+  //motor_c.spinFor(reverse, 720, degrees, wait);
+  //move_auton_rel_delta_xy(10, 0);
+  //drive_stop();
+
   //display_position();
   
   //move_auton(0, 0, 50);
@@ -456,8 +489,8 @@ void autonomous(void) {
   MoveAuton(100, atan(1.75/5), sqrt(5*5 + 1.75*1.75));
 
   // use roller
-  intake.spinTo(radians_to_degrees(2*pi), degrees);*/
-
+  intake.spinTo(radians_to_degrees(2*pi), degrees);
+*/
 }
 
 /*---------------------------------------------------------------------------*/
