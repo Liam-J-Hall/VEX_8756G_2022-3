@@ -348,9 +348,9 @@ void turn_angle(directionType direction, double angle_to_turn, bool stop = true)
 //delta_x and delta_y measured in inches
 void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
 
-    //degrees that the wheels must turn to reach x
-    double wheel_angle_ac = (delta_y/WHEEL_RADIUS) * (180/pi);
     //degrees that the wheels must turn to reach y
+    double wheel_angle_ac = (delta_y/WHEEL_RADIUS) * (180/pi);
+    //degrees that the wheels must turn to reach x
     double wheel_angle_db = (delta_x/WHEEL_RADIUS)  * (180/pi);
 
     //move the robot to position
@@ -362,17 +362,18 @@ void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
     motor_d.spinFor(reverse, wheel_angle_db, degrees, stop);
 }
 
+//heading is angle from motor a
 void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool stop = true){
 
   //heading relative in order to find the 
   double rel_heading =  heading;
   double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
   //relative to robot change in x
-  double rel_delta_x = rel_heading_magnitude*cos( dtr(rel_heading) );
+  double rel_delta_x = rel_heading_magnitude*sin( dtr(rel_heading) );
   //relative to robot change in y
-  double rel_delta_y = rel_heading_magnitude*sin( dtr(rel_heading) );
+  double rel_delta_y = rel_heading_magnitude*cos( dtr(rel_heading) );
 
- //degrees that the wheels must turn to reach ys
+ //degrees that the wheels must turn to reach y
     double wheel_angle_ac = (rel_delta_y/WHEEL_RADIUS) * (180/pi);
     //degrees that the wheels must turn to reach x
     double wheel_angle_db = (rel_delta_x/WHEEL_RADIUS)  * (180/pi);
@@ -400,7 +401,7 @@ void autonomous(void) {
   // ..........................................................................
   
   //move_auton_rel_delta_xy(10, 0);
-  move_auton_delta_xy(135, 10, 0);
+  move_auton_delta_xy(-45, 0, 10);
   /*
   //motor_a.spinFor(forward, 720, degrees, false);
   //motor_c.spinFor(reverse, 720, degrees, wait);
