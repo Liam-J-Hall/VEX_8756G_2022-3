@@ -392,12 +392,14 @@ double GPSfix(double heading){
   if(heading<0){
     return heading + 360;
   }
+  else{
+    return heading;
+  }
 }
 
 //function for moving to absolute coordinates on the field
-void move_auton_xy(double x, double y, bool stop = true){
-    
-    move_auton_delta_xy(GPSfix(GPS.heading())+135, (x-GPS.xPosition())/25.4, (y-GPS.yPosition())/25.4, stop);
+void move_auton_xy(double x, double y, bool stop = true){  
+  move_auton_delta_xy(GPSfix(GPS.heading())+135, (x-GPS.xPosition())/25.4, (y-GPS.yPosition())/25.4, stop);
 }
 
 //stop all 4 drivebase motors
@@ -412,102 +414,7 @@ void autonomous(void) {
   // ..........................................................................
   // Insert autonomous user code here.
   // ..........................................................................
-  
-  //move_auton_rel_delta_xy(10, 0);
-  move_auton_delta_xy(-45, 0, 10);
-  /*
-  //motor_a.spinFor(forward, 720, degrees, false);
-  //motor_c.spinFor(reverse, 720, degrees, wait);
-  //move_auton_rel_delta_xy(10, 0);
-  //drive_stop();
-
-  //display_position();
-  
-  //move_auton(0, 0, 50);
-
-  //motor_a.spin(fwd);
-  //intake_1.spinFor(forward, 15, turns, 100, rpm, false);
-  //intake_2.spinFor(forward, 15, turns, 100, rpm, false);
-  //move_fwd(3, 150, true);
-  
-  //strafe(false, 1, 100, true);
-  //move_auton(0, 0, 60);
-
-  // Power Flywheel
-  //flywheel_1.spin(forward, 65, percent);
-  //flywheel_2.spin(reverse, 65, percent);
-
-  // Move to roller
-  //move_auton(1800, 1800, 65);
-
-  // Use Roller
-  //intake_2.spinFor(forward, 30, degrees);
-  
-  // Shoot disc
-
-  //indexer.open();
-  //wait(20, msec);
-  //indexer.close();
-
-
-   // power flywheel
-  /*flywheel_velocity = 75;
-  flywheel_1.spin(forward, flywheel_velocity, percent);
-  flywheel_2.spin(reverse, flywheel_velocity, percent); 
-  flywheel_powered = true;
-
-  // move to firing position
-  MoveAuton(100, pi/4, 33); // max velocity, 90 degrees, 33 inches
-
-  // rotate towards goal
-  TurnAuton(pi/4);
-
-  // shoot 2 preloads
-  for (int i=0; i<2; i++){
-    // push indexer out
-    indexer.set(true);
-    // wait 20 milliseconds
-    wait(20, msec);
-    // pull indexer in
-    indexer.set(false);
-    //wait 20 milliseconds
-    wait(20, msec);
-  }
-
-  //turn on intake
-  intake.spin(forward, 65, percent);
-  
-  // move towards the stack of discs (3); collect discs (3);
-  TurnAuton(pi);
-  MoveAuton(100, pi/4, 12); 
-  //wait for discs to be collected
-  wait(100 ,msec);
-
-  // move to firing position
-  MoveAuton(100, pi/4, 12); 
-  TurnAuton(pi);
-
-  // fire all stored discs (3) consecutively towards the goal
-  for (int i=0; i<3; i++){
-    // push indexer out
-    indexer.set(true);
-    // wait 20 milliseconds
-    wait(20, msec);
-    // pull indexer in
-    indexer.set(false);
-    //wait 20 milliseconds
-    wait(20, msec);
-  }
-
-  // turn in orientation to use the far roller
-  TurnAuton(-(3*pi/4));
-
-  // drive to roller
-  MoveAuton(100, atan(1.75/5), sqrt(5*5 + 1.75*1.75));
-
-  // use roller
-  intake.spinTo(radians_to_degrees(2*pi), degrees);
-*/
+  move_auton_xy(0, 0);
 }
 
 /*---------------------------------------------------------------------------*/
