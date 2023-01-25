@@ -368,11 +368,11 @@ void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool st
   //heading relative in order to find the 
   
   double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
-  double rel_heading =  heading+asin(delta_y/rel_heading_magnitude);
+  double rel_heading =  heading*pi/180+asin(delta_y/rel_heading_magnitude);
   //relative to robot change in x
-  double rel_delta_x = rel_heading_magnitude*cos( dtr(rel_heading) );
+  double rel_delta_x = rel_heading_magnitude*cos( rel_heading );
   //relative to robot change in y
-  double rel_delta_y = rel_heading_magnitude*sin( dtr(rel_heading) );
+  double rel_delta_y = rel_heading_magnitude*sin(rel_heading );
 
  //degrees that the wheels must turn to reach x
     double wheel_angle_ac = (rel_delta_x/WHEEL_RADIUS) * (180/pi);
@@ -416,7 +416,7 @@ void autonomous(void) {
   // Insert autonomous user code here.
   // ..........................................................................
   //move_auton_xy(0, 0);
-  move_auton_delta_xy(0, 10, 10);
+  move_auton_delta_xy(-45, 50, 50);
   //move_auton_rel_delta_xy(0, 10);
   //true if right in front of roller, false if not. changes based on needs of auton
   bool roller = false;
