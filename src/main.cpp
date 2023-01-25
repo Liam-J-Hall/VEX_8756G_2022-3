@@ -415,6 +415,23 @@ void autonomous(void) {
   // Insert autonomous user code here.
   // ..........................................................................
   move_auton_xy(0, 0);
+
+  //true if right in front of roller, false if not. changes based on needs of auton
+  bool roller = false;
+  if(!roller){
+    //move to in front of roller
+  }
+  //move to touch roller
+  //spin roller
+
+  //move from roller
+  //turn towards goal
+  //move into position
+  //spin up flywheel
+  //launch disk
+  //spin up flywheel 2
+  //launch disk 2
+
 }
 
 /*---------------------------------------------------------------------------*/
