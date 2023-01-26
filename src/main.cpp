@@ -243,6 +243,10 @@ void turn_angle(directionType direction, double angle_to_turn, bool stop = true)
     motor_d.spinFor(direction, wheel_angle, degrees, stop);
 }
 
+//determines actual angle using a combination
+double determine_angle_position(double adjacent, double opposite){
+
+}
 //change from current position
 //delta_x and delta_y measured in inches
 void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
@@ -264,27 +268,36 @@ void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
 //heading is angle from motor a
 void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool stop = true){
 
+  
   //finds magnitude of the vector in the direction travelling
   double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
-  
+
   //finds angle of the vector of travel and adjusts it so that the angle begins at the a motor
   //if this is going in the wrong direction then the pi/2 probably needs to be subtracted
-  double rel_heading =  heading*pi/180+pi/2+asin(delta_y/rel_heading_magnitude);
+  double rel_heading =  heading*pi/180+acos(delta_x/rel_heading_magnitude);
 
   //relative to robot change in x
-  double rel_delta_x = rel_heading_magnitude*cos(rel_heading );
+  //double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
+  double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
   //relative to robot change in y
-  double rel_delta_y = rel_heading_magnitude*sin(rel_heading );
+  double rel_delta_y = rel_heading_magnitude*sin(rel_heading);
+
+  Controller1.Screen.clearScreen();
+  Controller1.Screen.setCursor(1,1);
+  Controller1.Screen.print(rel_delta_x);
+  Controller1.Screen.print(", ");
+  Controller1.Screen.print(rel_delta_y);
 
  //degrees that the wheels must turn to reach x
-    double wheel_angle_ac = (rel_delta_x/WHEEL_RADIUS) * (180/pi);
+    double wheel_angle_db = (rel_delta_x/WHEEL_RADIUS) * (180/pi);
     //degrees that the wheels must turn to reach y
-    double wheel_angle_db = (rel_delta_y/WHEEL_RADIUS)  * (180/pi);
+    double wheel_angle_ac = (rel_delta_y/WHEEL_RADIUS)  * (180/pi);
 
     //move the robot to position
     //x component motors
     motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
     motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
+
     //y component motors
     motor_b.spinFor(reverse, wheel_angle_db, degrees, false);
     motor_d.spinFor(forward, wheel_angle_db, degrees, stop);
@@ -318,24 +331,40 @@ void autonomous(void) {
   // Insert autonomous user code here.
   // ..........................................................................
   //move_auton_xy(0, 0);
-  move_auton_delta_xy(-45, 50, 50);
+  move_auton_delta_xy(-45, 0, 15);
+  move_auton_delta_xy(-45, 0, -15);
+  move_auton_delta_xy(-45, 15, 0);
+  move_auton_delta_xy(-45, -15, 0);
+  //motor_a.spinFor(reverse, -360, degrees, false);
+  //motor_c.spinFor(forward, -360, degrees, false);
+  /*
+
   //move_auton_rel_delta_xy(0, 10);
   //true if right in front of roller, false if not. changes based on needs of auton
   bool roller = false;
-  
+  directionType direction_to_turn = forward;
   if(!roller){
     //move to in front of roller
+    move_auton_delta_xy(-45, 18+7.5, 0);
+
+    //direction to turn after touching roller
+    direction_to_turn = reverse;
   }
   //move to touch roller
+  move_auton_delta_xy(-45,0, -1);
   //spin roller
 
   //move from roller
+  move_auton_delta_xy(-45, 0, 2);
   //turn towards goal
+  turn_angle(direction_to_turn, 90);
   //move into position
   //spin up flywheel
   //launch disk
   //spin up flywheel 2
   //launch disk 2
+
+  */
 
 }
 
