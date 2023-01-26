@@ -104,52 +104,6 @@ double r_rotations;
 double motor_a_c_vel;
 double motor_d_b_vel;
 
-/*void MoveAuton (double velocity_auton, double angle_auton, double distance_auton)
-{ 
-  // angle must be given in radians, velocity is given in percentage
-
-  // the distance that each axis has to push the robot
-  y_distance = distance_auton * sin(angle_auton);
-  x_distance = distance_auton * cos(angle_auton);
-  Brain.Screen.print(y_distance);
-  Brain.Screen.print("|");
-
-  // how many times the wheels have to rotate to move y_distance or x_distance
-  y_rotations = y_distance / 4*pi;
-  x_rotations = x_distance / 4*pi;
-  Brain.Screen.print(y_rotations);
-  Brain.Screen.print("|");
-
-  // determine the magnatude of velocity applied by the front two wheels
-  motor_a_c_vel = velocity_auton * sin(angle_auton); // wheel axis 1
-  motor_d_b_vel = velocity_auton * cos(angle_auton); // wheel axis 2
-  Brain.Screen.print(motor_a_c_vel);
-  Brain.Screen.print("|");
-
-  // sets the velocities of the wheels to the magnatudes of the velocities
-  motor_a.setVelocity(motor_a_c_vel, percent);
-  motor_b.setVelocity(motor_d_b_vel, percent);
-  motor_c.setVelocity(motor_a_c_vel, percent);
-  motor_d.setVelocity(motor_d_b_vel, percent);
-  Brain.Screen.print("MotorVel Set|");
-
-  // spin the wheels in the angular velocities. 
-  motor_a.rotateFor(forward, y_rotations * 360, degrees, false); // 2*pi multiplied by the number of 360 degree rotations
-  motor_b.rotateFor(reverse, x_rotations * 360, degrees, false);
-  motor_c.rotateFor(reverse, y_rotations * 360, degrees, false);
-  motor_d.rotateFor(forward, x_rotations * 360, degrees, true);
-  Brain.Screen.print("Moved");
-}*/
-
-/*
-ADHD Fidget Junk Typing
-
-as;lkdjfas;lkdjfsa;ldkfjasldfs;ladfkjas;dlfkjasldfkjasldkjfasldkjfa;sldkjfas;lkdjfas;lkdjfas;ldkfjas;ldkjf;alsdkfja;lsdkfjas;ldjf
-sald;kfjas;ldkfjas;ldkfjas;lkdjfa;sldkjfa;slkdfja;sldkfjas;ldkfjas;ldkfjas;ldkfja;lkjfas;lkdjf;asldkfja;sldkfja;sldkfj
-a;lskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf
-as;ldkfja;sldkfjasd;flaksjd;lfkasldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;lskdjf;alskdjf
-a;lsdkjfa;sldfjka;lskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;lskdjf;alskdjf
-*/
 
 void display_position()
 {
@@ -210,62 +164,7 @@ void strafe(bool is_left, double goal_revolutions, double speed, bool wait = fal
     motor_c.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
     motor_d.spinFor(fwd, goal_revolutions, turns, speed, rpm, wait);
   }
-
-  display_position();
 }
-
-/*void move_auton(double x_pos, double y_pos, double speed)
-{
-  // calculate angle that the robot must move to get from x_0 to x (and y_0 to y)
-  double delta_y;
-  double delta_x;
-  double travel_angle;
-  double m_a_speed;
-  double m_b_speed;
-  double n_gps_heading; // initial heading
-  double d_gps_heading; //change in heading
-  double u_heading = GPS.heading(); // usable heading
-  double p_const = 0.2;
-  double distance_from_goal;
-  
-  while ((GPS.xPosition() < x_pos - GPS_offset || GPS.xPosition() > x_pos + GPS_offset) || (GPS.yPosition() > y_pos + GPS_offset || GPS.yPosition() < y_pos - GPS_offset))
-  {
-    delta_y = y_pos - GPS.yPosition();
-    delta_x = x_pos - GPS.xPosition();
-    travel_angle = atan2(delta_x, delta_y);
-
-    if (y_pos < GPS.yPosition()) {
-      travel_angle += pi;
-    }
-
-    distance_from_goal = sqrt(pow(delta_y, 2) + pow(delta_x, 2));
-
-    m_a_speed = speed * cos(fabs(travel_angle - pi/4 - (dtr(u_heading))));
-    m_b_speed = speed * cos(fabs(travel_angle + pi/4 - (dtr(u_heading))));
-
-    motor_a.spin(fwd, m_a_speed, percent);
-    motor_b.spin(fwd, m_b_speed, percent);
-    motor_c.spin(reverse, m_a_speed, percent);
-    motor_d.spin(reverse, m_b_speed, percent);
-
-    d_gps_heading = GPS.heading() - n_gps_heading;
-
-    if (d_gps_heading == 0 && (motor_a.velocity(rpm) > 0 || motor_b.velocity(rpm) > 0)) {
-      u_heading = inert.heading();
-    } else {
-      u_heading = GPS.heading();
-    }
-    
-    n_gps_heading = GPS.heading();
-
-    wait(10, msec);
-  }
-
-  motor_a.stop();
-  motor_b.stop();
-  motor_c.stop();
-  motor_d.stop();
-}*/
 
 bool is_within_bounds (double x_bound, double y_bound, double error) {
   if (x_bound + error < GPS.xPosition(mm) || y_bound + error < GPS.yPosition(mm) || x_bound - error > GPS.xPosition(mm) || y_bound - error > GPS.yPosition(mm))
@@ -344,47 +243,95 @@ void turn_angle(directionType direction, double angle_to_turn, bool stop = true)
     motor_d.spinFor(direction, wheel_angle, degrees, stop);
 }
 
+//determines actual angle instead of only 1 solution from arcsin
+double determine_angle(double adjacent, double opposite){
+
+  double hypo = sqrt(pow(adjacent, 2) + pow(opposite, 2));
+  double actual_angle = asin(opposite/hypo);
+
+  if(adjacent >= 0 && opposite >= 0){ //quadrant 1
+      return actual_angle;
+  } else if(adjacent <= 0 && opposite >=0){ //quadrant 2
+      return pi - actual_angle; 
+  } else if(adjacent <= 0 && opposite <=0){ //quadrant 3
+    return pi-actual_angle;
+  } else if(adjacent >=0 && opposite <= 0){ //quadrant 4
+    return 2 * pi + actual_angle;
+  } else {
+    return 80085; //if things are wrong return a out of domain number for debugging
+  }
+}
+
 //change from current position
 //delta_x and delta_y measured in inches
 void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
 
-    //degrees that the wheels must turn to reach x
-    double wheel_angle_ac = (delta_y/WHEEL_RADIUS) * (180/pi);
-    //degrees that the wheels must turn to reach y
-    double wheel_angle_db = (delta_x/WHEEL_RADIUS)  * (180/pi);
+  //degrees that the wheels must turn to reach y
+  double wheel_angle_ac = (delta_x/WHEEL_RADIUS) * (180/pi);
+  //degrees that the wheels must turn to reach x
+  double wheel_angle_db = (delta_y/WHEEL_RADIUS)  * (180/pi);
 
     //move the robot to position
     //x component motors
     motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
     motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
     //y component motors
-    motor_b.spinFor(forward, wheel_angle_db, degrees, false);
-    motor_d.spinFor(reverse, wheel_angle_db, degrees, stop);
+    motor_b.spinFor(reverse, wheel_angle_db, degrees, false);
+    motor_d.spinFor(forward, wheel_angle_db, degrees, stop);
 }
 
+//heading is angle from motor a
 void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool stop = true){
 
-  //heading relative in order to find the 
-  double rel_heading =  heading;
+  delta_x*=-1;
+  //finds magnitude of the vector in the direction travelling
   double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
-  //relative to robot change in x
-  double rel_delta_x = rel_heading_magnitude*cos( dtr(rel_heading) );
-  //relative to robot change in y
-  double rel_delta_y = rel_heading_magnitude*sin( dtr(rel_heading) );
 
- //degrees that the wheels must turn to reach ys
-    double wheel_angle_ac = (rel_delta_y/WHEEL_RADIUS) * (180/pi);
-    //degrees that the wheels must turn to reach x
-    double wheel_angle_db = (rel_delta_x/WHEEL_RADIUS)  * (180/pi);
+  //finds angle of the vector of travel and adjusts it so that the angle begins at the a motor
+  //if this is going in the wrong direction then the pi/2 probably needs to be subtracted
+  double rel_heading =  heading*pi/180+determine_angle(delta_x, delta_y);
+
+  //relative to robot change in x
+  //double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
+  double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
+  //relative to robot change in y
+  double rel_delta_y = rel_heading_magnitude*sin(rel_heading);
+
+  Controller1.Screen.clearScreen();
+  Controller1.Screen.setCursor(1,1);
+  Controller1.Screen.print(rel_delta_x);
+  Controller1.Screen.print(", ");
+  Controller1.Screen.print(rel_delta_y);
+
+ //degrees that the wheels must turn to reach x
+    double wheel_angle_db = (rel_delta_x/WHEEL_RADIUS) * (180/pi);
+    //degrees that the wheels must turn to reach y
+    double wheel_angle_ac = (rel_delta_y/WHEEL_RADIUS)  * (180/pi);
 
     //move the robot to position
     //x component motors
     motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
     motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
+
     //y component motors
-    motor_b.spinFor(forward, wheel_angle_db, degrees, false);
-    motor_d.spinFor(reverse, wheel_angle_db, degrees, stop);
+    motor_b.spinFor(reverse, wheel_angle_db, degrees, false);
+    motor_d.spinFor(forward, wheel_angle_db, degrees, stop);
     }
+
+//converts the GPS from [0,180] and [-180,0] to [0,360] to be more usable
+double GPSfix(double heading){
+  if(heading<0){
+    return heading + 360;
+  }
+  else{
+    return heading;
+  }
+}
+
+//function for moving to absolute coordinates on the field
+void move_auton_xy(double x, double y, bool stop = true){  
+  move_auton_delta_xy(GPSfix(GPS.heading())+135, (x-GPS.xPosition())/25.4, (y-GPS.yPosition())/25.4, stop);
+}
 
 //stop all 4 drivebase motors
 void drive_stop(){
@@ -398,102 +345,45 @@ void autonomous(void) {
   // ..........................................................................
   // Insert autonomous user code here.
   // ..........................................................................
+  //move_auton_xy(0, 0);
+
+  move_auton_delta_xy(-45, 0, 15);
+  move_auton_delta_xy(-45, 0, -15);
+  move_auton_delta_xy(-45, 15, 0);
+  move_auton_delta_xy(-45, -15, 0);
   
-  //move_auton_rel_delta_xy(10, 0);
-  move_auton_delta_xy(135, 10, 0);
+
+  //motor_a.spinFor(reverse, -360, degrees, false);
+  //motor_c.spinFor(forward, -360, degrees, false);
   /*
-  //motor_a.spinFor(forward, 720, degrees, false);
-  //motor_c.spinFor(reverse, 720, degrees, wait);
-  //move_auton_rel_delta_xy(10, 0);
-  //drive_stop();
 
-  //display_position();
-  
-  //move_auton(0, 0, 50);
+  //move_auton_rel_delta_xy(0, 10);
+  //true if right in front of roller, false if not. changes based on needs of auton
+  bool roller = false;
+  directionType direction_to_turn = forward;
+  if(!roller){
+    //move to in front of roller
+    move_auton_delta_xy(-45, 18+7.5, 0);
 
-  //motor_a.spin(fwd);
-  //intake_1.spinFor(forward, 15, turns, 100, rpm, false);
-  //intake_2.spinFor(forward, 15, turns, 100, rpm, false);
-  //move_fwd(3, 150, true);
-  
-  //strafe(false, 1, 100, true);
-  //move_auton(0, 0, 60);
-
-  // Power Flywheel
-  //flywheel_1.spin(forward, 65, percent);
-  //flywheel_2.spin(reverse, 65, percent);
-
-  // Move to roller
-  //move_auton(1800, 1800, 65);
-
-  // Use Roller
-  //intake_2.spinFor(forward, 30, degrees);
-  
-  // Shoot disc
-
-  //indexer.open();
-  //wait(20, msec);
-  //indexer.close();
-
-
-   // power flywheel
-  /*flywheel_velocity = 75;
-  flywheel_1.spin(forward, flywheel_velocity, percent);
-  flywheel_2.spin(reverse, flywheel_velocity, percent); 
-  flywheel_powered = true;
-
-  // move to firing position
-  MoveAuton(100, pi/4, 33); // max velocity, 90 degrees, 33 inches
-
-  // rotate towards goal
-  TurnAuton(pi/4);
-
-  // shoot 2 preloads
-  for (int i=0; i<2; i++){
-    // push indexer out
-    indexer.set(true);
-    // wait 20 milliseconds
-    wait(20, msec);
-    // pull indexer in
-    indexer.set(false);
-    //wait 20 milliseconds
-    wait(20, msec);
+    //direction to turn after touching roller
+    direction_to_turn = reverse;
   }
+  //move to touch roller
+  move_auton_delta_xy(-45,0, -1);
+  //spin roller
 
-  //turn on intake
-  intake.spin(forward, 65, percent);
-  
-  // move towards the stack of discs (3); collect discs (3);
-  TurnAuton(pi);
-  MoveAuton(100, pi/4, 12); 
-  //wait for discs to be collected
-  wait(100 ,msec);
+  //move from roller
+  move_auton_delta_xy(-45, 0, 2);
+  //turn towards goal
+  turn_angle(direction_to_turn, 90);
+  //move into position
+  //spin up flywheel
+  //launch disk
+  //spin up flywheel 2
+  //launch disk 2
 
-  // move to firing position
-  MoveAuton(100, pi/4, 12); 
-  TurnAuton(pi);
+  */
 
-  // fire all stored discs (3) consecutively towards the goal
-  for (int i=0; i<3; i++){
-    // push indexer out
-    indexer.set(true);
-    // wait 20 milliseconds
-    wait(20, msec);
-    // pull indexer in
-    indexer.set(false);
-    //wait 20 milliseconds
-    wait(20, msec);
-  }
-
-  // turn in orientation to use the far roller
-  TurnAuton(-(3*pi/4));
-
-  // drive to roller
-  MoveAuton(100, atan(1.75/5), sqrt(5*5 + 1.75*1.75));
-
-  // use roller
-  intake.spinTo(radians_to_degrees(2*pi), degrees);
-*/
 }
 
 /*---------------------------------------------------------------------------*/
