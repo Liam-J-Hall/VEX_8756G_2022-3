@@ -104,52 +104,6 @@ double r_rotations;
 double motor_a_c_vel;
 double motor_d_b_vel;
 
-/*void MoveAuton (double velocity_auton, double angle_auton, double distance_auton)
-{ 
-  // angle must be given in radians, velocity is given in percentage
-
-  // the distance that each axis has to push the robot
-  y_distance = distance_auton * sin(angle_auton);
-  x_distance = distance_auton * cos(angle_auton);
-  Brain.Screen.print(y_distance);
-  Brain.Screen.print("|");
-
-  // how many times the wheels have to rotate to move y_distance or x_distance
-  y_rotations = y_distance / 4*pi;
-  x_rotations = x_distance / 4*pi;
-  Brain.Screen.print(y_rotations);
-  Brain.Screen.print("|");
-
-  // determine the magnatude of velocity applied by the front two wheels
-  motor_a_c_vel = velocity_auton * sin(angle_auton); // wheel axis 1
-  motor_d_b_vel = velocity_auton * cos(angle_auton); // wheel axis 2
-  Brain.Screen.print(motor_a_c_vel);
-  Brain.Screen.print("|");
-
-  // sets the velocities of the wheels to the magnatudes of the velocities
-  motor_a.setVelocity(motor_a_c_vel, percent);
-  motor_b.setVelocity(motor_d_b_vel, percent);
-  motor_c.setVelocity(motor_a_c_vel, percent);
-  motor_d.setVelocity(motor_d_b_vel, percent);
-  Brain.Screen.print("MotorVel Set|");
-
-  // spin the wheels in the angular velocities. 
-  motor_a.rotateFor(forward, y_rotations * 360, degrees, false); // 2*pi multiplied by the number of 360 degree rotations
-  motor_b.rotateFor(reverse, x_rotations * 360, degrees, false);
-  motor_c.rotateFor(reverse, y_rotations * 360, degrees, false);
-  motor_d.rotateFor(forward, x_rotations * 360, degrees, true);
-  Brain.Screen.print("Moved");
-}*/
-
-/*
-ADHD Fidget Junk Typing
-
-as;lkdjfas;lkdjfsa;ldkfjasldfs;ladfkjas;dlfkjasldfkjasldkjfasldkjfa;sldkjfas;lkdjfas;lkdjfas;ldkfjas;ldkjf;alsdkfja;lsdkfjas;ldjf
-sald;kfjas;ldkfjas;ldkfjas;lkdjfa;sldkjfa;slkdfja;sldkfjas;ldkfjas;ldkfjas;ldkfja;lkjfas;lkdjf;asldkfja;sldkfja;sldkfj
-a;lskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf
-as;ldkfja;sldkfjasd;flaksjd;lfkasldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;sldkfja;lskdjf;alskdjf
-a;lsdkjfa;sldfjka;lskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;alskdjf;lskdjf;alskdjf
-*/
 
 void display_position()
 {
@@ -210,62 +164,7 @@ void strafe(bool is_left, double goal_revolutions, double speed, bool wait = fal
     motor_c.spinFor(fwd, goal_revolutions, turns, speed, rpm, false);
     motor_d.spinFor(fwd, goal_revolutions, turns, speed, rpm, wait);
   }
-
-  display_position();
 }
-
-/*void move_auton(double x_pos, double y_pos, double speed)
-{
-  // calculate angle that the robot must move to get from x_0 to x (and y_0 to y)
-  double delta_y;
-  double delta_x;
-  double travel_angle;
-  double m_a_speed;
-  double m_b_speed;
-  double n_gps_heading; // initial heading
-  double d_gps_heading; //change in heading
-  double u_heading = GPS.heading(); // usable heading
-  double p_const = 0.2;
-  double distance_from_goal;
-  
-  while ((GPS.xPosition() < x_pos - GPS_offset || GPS.xPosition() > x_pos + GPS_offset) || (GPS.yPosition() > y_pos + GPS_offset || GPS.yPosition() < y_pos - GPS_offset))
-  {
-    delta_y = y_pos - GPS.yPosition();
-    delta_x = x_pos - GPS.xPosition();
-    travel_angle = atan2(delta_x, delta_y);
-
-    if (y_pos < GPS.yPosition()) {
-      travel_angle += pi;
-    }
-
-    distance_from_goal = sqrt(pow(delta_y, 2) + pow(delta_x, 2));
-
-    m_a_speed = speed * cos(fabs(travel_angle - pi/4 - (dtr(u_heading))));
-    m_b_speed = speed * cos(fabs(travel_angle + pi/4 - (dtr(u_heading))));
-
-    motor_a.spin(fwd, m_a_speed, percent);
-    motor_b.spin(fwd, m_b_speed, percent);
-    motor_c.spin(reverse, m_a_speed, percent);
-    motor_d.spin(reverse, m_b_speed, percent);
-
-    d_gps_heading = GPS.heading() - n_gps_heading;
-
-    if (d_gps_heading == 0 && (motor_a.velocity(rpm) > 0 || motor_b.velocity(rpm) > 0)) {
-      u_heading = inert.heading();
-    } else {
-      u_heading = GPS.heading();
-    }
-    
-    n_gps_heading = GPS.heading();
-
-    wait(10, msec);
-  }
-
-  motor_a.stop();
-  motor_b.stop();
-  motor_c.stop();
-  motor_d.stop();
-}*/
 
 bool is_within_bounds (double x_bound, double y_bound, double error) {
   if (x_bound + error < GPS.xPosition(mm) || y_bound + error < GPS.yPosition(mm) || x_bound - error > GPS.xPosition(mm) || y_bound - error > GPS.yPosition(mm))
@@ -365,12 +264,15 @@ void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
 //heading is angle from motor a
 void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool stop = true){
 
-  //heading relative in order to find the 
-  
+  //finds magnitude of the vector in the direction travelling
   double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
-  double rel_heading =  heading*pi/180+asin(delta_y/rel_heading_magnitude);
+  
+  //finds angle of the vector of travel and adjusts it so that the angle begins at the a motor
+  //if this is going in the wrong direction then the pi/2 probably needs to be subtracted
+  double rel_heading =  heading*pi/180+pi/2+asin(delta_y/rel_heading_magnitude);
+
   //relative to robot change in x
-  double rel_delta_x = rel_heading_magnitude*cos( rel_heading );
+  double rel_delta_x = rel_heading_magnitude*cos(rel_heading );
   //relative to robot change in y
   double rel_delta_y = rel_heading_magnitude*sin(rel_heading );
 
