@@ -243,18 +243,33 @@ void turn_angle(directionType direction, double angle_to_turn, bool stop = true)
     motor_d.spinFor(direction, wheel_angle, degrees, stop);
 }
 
-//determines actual angle using a combination
-double determine_angle_position(double adjacent, double opposite){
+//determines actual angle instead of only 1 solution from arcsin
+double determine_angle(double adjacent, double opposite){
 
+  double hypo = sqrt(pow(adjacent, 2) + pow(opposite, 2));
+  double actual_angle = asin(opposite/hypo);
+
+  if(adjacent >= 0 && opposite >= 0){ //quadrant 1
+      return actual_angle;
+  } else if(adjacent <= 0 && opposite >=0){ //quadrant 2
+      return pi - actual_angle; 
+  } else if(adjacent <= 0 && opposite <=0){ //quadrant 3
+    return pi-actual_angle;
+  } else if(adjacent >=0 && opposite <= 0){ //quadrant 4
+    return 2 * pi + actual_angle;
+  } else {
+    return 80085; //if things are wrong return a out of domain number for debugging
+  }
 }
+
 //change from current position
 //delta_x and delta_y measured in inches
 void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
 
-    //degrees that the wheels must turn to reach y
-    double wheel_angle_ac = (delta_x/WHEEL_RADIUS) * (180/pi);
-    //degrees that the wheels must turn to reach x
-    double wheel_angle_db = (delta_y/WHEEL_RADIUS)  * (180/pi);
+  //degrees that the wheels must turn to reach y
+  double wheel_angle_ac = (delta_x/WHEEL_RADIUS) * (180/pi);
+  //degrees that the wheels must turn to reach x
+  double wheel_angle_db = (delta_y/WHEEL_RADIUS)  * (180/pi);
 
     //move the robot to position
     //x component motors
@@ -268,13 +283,13 @@ void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
 //heading is angle from motor a
 void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool stop = true){
 
-  
+  delta_x*=-1;
   //finds magnitude of the vector in the direction travelling
   double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
 
   //finds angle of the vector of travel and adjusts it so that the angle begins at the a motor
   //if this is going in the wrong direction then the pi/2 probably needs to be subtracted
-  double rel_heading =  heading*pi/180+acos(delta_x/rel_heading_magnitude);
+  double rel_heading =  heading*pi/180+determine_angle(delta_x, delta_y);
 
   //relative to robot change in x
   //double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
@@ -331,10 +346,13 @@ void autonomous(void) {
   // Insert autonomous user code here.
   // ..........................................................................
   //move_auton_xy(0, 0);
+
   move_auton_delta_xy(-45, 0, 15);
   move_auton_delta_xy(-45, 0, -15);
   move_auton_delta_xy(-45, 15, 0);
   move_auton_delta_xy(-45, -15, 0);
+  
+
   //motor_a.spinFor(reverse, -360, degrees, false);
   //motor_c.spinFor(forward, -360, degrees, false);
   /*
