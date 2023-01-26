@@ -292,7 +292,6 @@ void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool st
   double rel_heading =  heading*pi/180+determine_angle(delta_x, delta_y);
 
   //relative to robot change in x
-  //double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
   double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
   //relative to robot change in y
   double rel_delta_y = rel_heading_magnitude*sin(rel_heading);
@@ -354,26 +353,26 @@ void autonomous(void) {
   move_auton_delta_xy(-45, -15, 0);
 */
 
-  //move_auton_rel_delta_xy(0, 10);
   //true if right in front of roller, false if not. changes based on needs of auton
   bool roller = false;
   directionType direction_to_turn = forward;
   if(!roller){
     //move to in front of roller
-    move_auton_delta_xy(-45, -(18+7.5), 0);
+    move_auton_delta_xy(-45, -(18+7.5+5), 0);
 
     //direction to turn after touching roller
     direction_to_turn = reverse;
   }
   //move to touch roller
-  move_auton_delta_xy(-45,0, 1);
+  move_auton_delta_xy(-45,0, 5);
   //spin roller
 
   //move from roller
-  move_auton_delta_xy(-45, 0, -2);
+  move_auton_delta_xy(-45, 0, -5);
   //turn towards goal
-  turn_angle(direction_to_turn, 90);
+  turn_angle(direction_to_turn, 100);
   //move into position
+  move_auton_delta_xy(-45, 0, -20);
   //spin up flywheel
   //launch disk
   //spin up flywheel 2
