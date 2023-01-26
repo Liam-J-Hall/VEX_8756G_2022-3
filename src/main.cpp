@@ -345,17 +345,14 @@ void autonomous(void) {
   // ..........................................................................
   // Insert autonomous user code here.
   // ..........................................................................
-  //move_auton_xy(0, 0);
-
+  
+  /*
+  //testing code for move_auton_delta_xy
   move_auton_delta_xy(-45, 0, 15);
   move_auton_delta_xy(-45, 0, -15);
   move_auton_delta_xy(-45, 15, 0);
   move_auton_delta_xy(-45, -15, 0);
-  
-
-  //motor_a.spinFor(reverse, -360, degrees, false);
-  //motor_c.spinFor(forward, -360, degrees, false);
-  /*
+*/
 
   //move_auton_rel_delta_xy(0, 10);
   //true if right in front of roller, false if not. changes based on needs of auton
@@ -363,17 +360,17 @@ void autonomous(void) {
   directionType direction_to_turn = forward;
   if(!roller){
     //move to in front of roller
-    move_auton_delta_xy(-45, 18+7.5, 0);
+    move_auton_delta_xy(-45, -(18+7.5), 0);
 
     //direction to turn after touching roller
     direction_to_turn = reverse;
   }
   //move to touch roller
-  move_auton_delta_xy(-45,0, -1);
+  move_auton_delta_xy(-45,0, 1);
   //spin roller
 
   //move from roller
-  move_auton_delta_xy(-45, 0, 2);
+  move_auton_delta_xy(-45, 0, -2);
   //turn towards goal
   turn_angle(direction_to_turn, 90);
   //move into position
@@ -382,7 +379,7 @@ void autonomous(void) {
   //spin up flywheel 2
   //launch disk 2
 
-  */
+  
 
 }
 
