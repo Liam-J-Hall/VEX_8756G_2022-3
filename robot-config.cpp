@@ -19,7 +19,6 @@ motor flywheel_2 = motor(PORT20, ratio18_1, false);
 motor intake_1 = motor(PORT17, ratio18_1, false);
 motor intake_2 = motor(PORT18, ratio18_1, true);
 pneumatics indexer = pneumatics(Brain.ThreeWirePort.A);
-pneumatics expansion = pneumatics(Brain.ThreeWirePort.C);
 gps GPS = gps(PORT16, -80.00, 90.00, mm, 90);
 optical opt = optical (PORT10);
 
@@ -30,16 +29,34 @@ bool RemoteControlCodeEnabled = true;
 bool Controller1LeftShoulderControlMotorsStopped = true;
 bool Controller1RightShoulderControlMotorsStopped = true;
 
-float intake_speed = 85;
 double flywheel_mult;
 float flywheel_voltage = 10; // 10 VOLTS AT THE MOST!
 double overshoot_target = 11; // 11 VOLTS AT THE MOST!
 double undershoot_target = 9; // 9 VOLTS AT THE MOST!
 bool spin_flywheel;
 
-void do_spin_flywheel(){
-  flywheel_1.spin(forward, flywheel_voltage * flywheel_mult, volt);
-  flywheel_2.spin(reverse, flywheel_voltage * flywheel_mult, volt);
+void flywheel_05(){
+  if (flywheel_mult <= 1.0) {
+    flywheel_mult += 0.005;
+  }
+}
+
+void flywheel_01(){
+  if (flywheel_mult <= 1.0) {
+    flywheel_mult += 0.001;
+  }
+}
+
+void flywheel_05_n(){
+  if (flywheel_mult >= 0.0) {
+    flywheel_mult -= 0.005;
+  }
+}
+
+void flywheel_01_n(){
+  if (flywheel_mult >= 0.0) {
+    flywheel_mult -= 0.001;
+  }
 }
 
 // define a task that will handle monitoring inputs from Controller1
@@ -50,23 +67,16 @@ int rc_auto_loop_function_Controller1() {
     if(RemoteControlCodeEnabled) {
 
       Brain.Screen.clearLine();
+    
+    //FLYWHEEL (COMMENTED OUT & MOVED TO MAIN.CPP)
 
-      // check the ButtonL1/ButtonL2 status to control intake_1
-      if (Controller1.ButtonR1.pressing()) {
-        intake_1.spin(forward, intake_speed, percent);
-        intake_2.spin(forward, intake_speed, percent);
-        Controller1RightShoulderControlMotorsStopped = false;
-      } else if (Controller1.ButtonR2.pressing()) {
-        intake_1.spin(reverse, intake_speed, percent);
-        intake_2.spin(reverse, intake_speed, percent);
-        Controller1RightShoulderControlMotorsStopped = false;
-      } else if (!Controller1RightShoulderControlMotorsStopped) {
-        intake_1.stop();
-        intake_2.stop();
-        // set the toggle so that we don't constantly tell the motor to stop when the buttons are released
-        Controller1RightShoulderControlMotorsStopped = true;
-      }
-      
+    
+    Controller1.ButtonUp.pressed(flywheel_05);
+    Controller1.ButtonDown.pressed(flywheel_05_n);
+    Controller1.ButtonLeft.pressed(flywheel_01);
+    Controller1.ButtonRight.pressed(flywheel_01_n);
+    
+     
     if (Controller1.ButtonB.pressing()) 
     {
       flywheel_mult = 0.5;      
@@ -78,7 +88,7 @@ int rc_auto_loop_function_Controller1() {
       Controller1LeftShoulderControlMotorsStopped = false;
     } else if (Controller1.ButtonY.pressing()) 
     {
-      flywheel_mult = 0.75;
+      flywheel_mult = 0.85;
       // set the toggle so that we don't constantly tell the motor to stop when the buttons are released
       Controller1LeftShoulderControlMotorsStopped = false;
     } else if (Controller1.ButtonX.pressing()) 
@@ -88,20 +98,14 @@ int rc_auto_loop_function_Controller1() {
       Controller1LeftShoulderControlMotorsStopped = false;
     } 
 
-    do_spin_flywheel();
-
-
-    if (Controller1.ButtonL2.pressing()) {
-      indexer.open();
-    } else {
-      indexer.close();
-    }
-
-    if (Controller1.ButtonLeft.pressing()) {
-      expansion.close();
-    } else {
-      expansion.open();
-    }
+    /* 
+    flywheel_1.spin(forward, flywheel_voltage * flywheel_mult, volt);
+    flywheel_2.spin(reverse, flywheel_voltage * flywheel_mult, volt);
+    */
+ 
+    // INDEXER AND EXPANSION (COMMENTED OUT & MOVED TO MAIN.CPP)
+    
+    // Indexer control
 
     /*Brain.Screen.print(flywheel_1.velocity(percent));
     Brain.Screen.newLine();

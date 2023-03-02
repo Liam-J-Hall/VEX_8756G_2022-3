@@ -32,6 +32,7 @@ using namespace vex;
 // A global instance of competition
 competition Competition;
 double pi = 3.1415926535;
+double P_CONST = 0.05;
 
 //radius of the wheel on the drive base in inches
 const double WHEEL_RADIUS = 3.5/2;
@@ -59,6 +60,12 @@ double dtr(double degrees){
   return degrees * pi / 180;
 }
 
+double heading_avg () 
+{
+  double sum_heading =  GPS.heading() + inert.heading();
+  return sum_heading *  0.5;
+}
+
 int bang_bang_motor_controller(){
   
   if (flywheel_1.velocity(rpm) < undershoot_target) {
@@ -70,15 +77,68 @@ int bang_bang_motor_controller(){
   return 0;
 }
 
+int controller_screen_manager()
+{
+  Brain.Screen.clearScreen();
+  while(1)
+  {
+    if (Brain.Battery.capacity(percent) <= 30)
+    {
+      Brain.Screen.clearScreen(color::orange);
+      Controller1.Screen.clearScreen();
+      wait(200, msec);
+      Brain.Screen.printAt(90,135, ">> RECHARGE BATTERY <<");
+      Controller1.rumble("--");
+      Controller1.Screen.setCursor(1, 2);
+      Controller1.Screen.print("RECHARGE");
+      Controller1.Screen.setCursor(2, 8);
+      Controller1.Screen.print("BATTERY");
+    } else {
+
+      Controller1.Screen.setCursor(1, 1);
+      Controller1.Screen.print("BATT");
+      Controller1.Screen.setCursor(1, 6);
+      Controller1.Screen.print(Brain.Battery.capacity(percent));
+       
+      Controller1.Screen.setCursor(1, 9);
+      Controller1.Screen.print("|");
+      
+      
+      Controller1.Screen.setCursor(1, 11);
+      Controller1.Screen.print("MOTC");
+      Controller1.Screen.setCursor(1, 16);
+      Controller1.Screen.print((motor_a.temperature(celsius) + motor_b.temperature(celsius) + motor_c.temperature(celsius) + motor_d.temperature(celsius)) / 4);
+      
+      
+      Controller1.Screen.setCursor(2, 1);
+      Controller1.Screen.print("I-TRQ");
+      Controller1.Screen.setCursor(2, 10);
+      Controller1.Screen.print(intake_1.torque());
+      
+
+      
+      Controller1.Screen.setCursor(3, 1);
+      Controller1.Screen.print("FLWL");
+      Controller1.Screen.setCursor(3, 6);
+      Controller1.Screen.print(flywheel_1.velocity(percent));
+      
+    }
+    wait(100, msec);
+  }
+}
+
+
+
 void pre_auton(void) {
   // Initializing Robot Configuration. DO NOT REMOVE!
   vexcodeInit();
+
+  Controller1.Screen.clearScreen();
+
   
-  Brain.Screen.clearScreen();
   GPS.calibrate();
   inert.calibrate();
-  inert.setHeading(GPS.heading(), degrees);
-  task bang_bang = task(bang_bang_motor_controller);
+  task c_manager = task(controller_screen_manager);
 
   // All activities that occur before the competition starts
   // Example: clearing encoders, setting servo positions, ...
@@ -171,36 +231,64 @@ void strafe(bool is_left, double goal_revolutions, double speed, bool wait = fal
   display_position();
 }
 
-//turns the robot the provided degrees
-//assumes zero slipping
-//direction is forward -> turn to right; backward -> left
-//angle in degrees
 
 
-void turn_to (double error, double goal_angle, double speed)
+// PID proportion control for the turn_to() function (defined within the function, declared here)
+double proportion_turn;
+double dot_prod_of_angles;
+double g_angle_correction;
+
+// turns the robot to the specific angle it needs to be
+// goal_angle is measured in degrees
+// speed is measured in percent (percent of maximum motor voltage)
+void turn_to (double goal_angle, double speed)
 {
-  double bot_orientation = dtr(GPS.heading());
+  // Correction
+  g_angle_correction = goal_angle * 0.5;
 
-  if (bot_orientation < 0) {
-    bot_orientation += 2*pi;
-  }
+  // Keeps the motors from being affected by outside forces
+  motor_a.setBrake(hold);
+  motor_b.setBrake(hold);
+  motor_c.setBrake(hold);
+  motor_d.setBrake(hold);
 
-  while (bot_orientation != goal_angle)
+  // Spins one direction while the current angle is less than the goal angle
+  while (heading_avg() < g_angle_correction - 3)
   {
-    motor_a.spin(fwd, speed, percent);
-    motor_b.spin(fwd, speed, percent);
-    motor_c.spin(fwd, speed, percent);
+    
+    proportion_turn = P_CONST * fabs(heading_avg() - g_angle_correction); 
+    
+    motor_a.spin(fwd, speed * proportion_turn, percent);
+    motor_b.spin(fwd, speed * proportion_turn, percent);
+    motor_c.spin(fwd, speed * proportion_turn, percent);
     motor_d.spin(fwd, speed, percent);
     
-    bot_orientation = dtr(GPS.heading());
-    if (bot_orientation < 0) {
-      bot_orientation += 2*pi;
-    }
+    wait(20, msec);
   }
+
+  // Spins the other direction while the current angle is greater than the goal angle
+  while (heading_avg() > g_angle_correction + 3)
+  {
+    proportion_turn = P_CONST * fabs(heading_avg() - g_angle_correction);
+
+    motor_a.spin(reverse, speed * proportion_turn, percent);
+    motor_b.spin(reverse, speed * proportion_turn, percent);
+    motor_c.spin(reverse, speed * proportion_turn, percent);
+    motor_d.spin(reverse, speed * proportion_turn, percent);
+    
+    wait(20, msec);
+  }
+
+  // Stops the motors and resets the brake types
   motor_a.stop();
   motor_b.stop();
   motor_c.stop();
   motor_d.stop();
+
+  motor_a.setBrake(coast);
+  motor_b.setBrake(coast);
+  motor_c.setBrake(coast);
+  motor_d.setBrake(coast);
 }
 
 /*void move_auton(double x_pos, double y_pos, double speed){
@@ -277,7 +365,7 @@ double m_c_speed;
 double m_d_speed;
 double bot_orientation;
 
-double determine_angle(double x_goal, double y_goal) {
+/*double determine_angle(double x_goal, double y_goal) {
   d_x = x_goal - GPS.xPosition(mm);
   d_y = y_goal - GPS.yPosition(mm);
   
@@ -288,7 +376,7 @@ double determine_angle(double x_goal, double y_goal) {
   }
 
   return travel_angle;
-}
+}*/
 
 double rtd (double radians) 
 {
@@ -314,37 +402,8 @@ directionType turning_dir;
 double bot_heading;
 double goal_angle;
 
-void move_turn_auton (double x_f, double y_f, double speed) {
-
-  bot_heading = inert.heading();
-
-  goal_angle = rtd(determine_angle(x_f, y_f));
-
-  if (goal_angle < bot_heading){
-    turning_dir = forward;
-  } else {
-    turning_dir = reverse;
-  }
-
-  if (bot_heading < 0){
-    bot_heading += 180;
-  }
-
-  angle_to_move = fabs(goal_angle - bot_heading);
-
-  turn_angle(turning_dir, angle_to_move, 100);
-  
-  while (!is_within_bounds(x_f, y_f, 20)) {
-    motor_a.spin(fwd, speed, percent);
-    motor_b.spin(reverse, speed, percent);
-    motor_c.spin(reverse, speed, percent);
-    motor_d.spin(fwd, speed, percent);
-  }
-}
-
-void move_auton (double x_goal, double y_goal, double speed){
-  while (is_within_bounds(x_goal, y_goal, 20))
-  {
+void move_auton (double x_goal, double y_goal, double speed) {
+  while (is_within_bounds(x_goal, y_goal, 20)) {
     d_x = x_goal - GPS.xPosition(mm);
     d_y = y_goal - GPS.yPosition(mm);
     
@@ -376,41 +435,37 @@ void move_auton (double x_goal, double y_goal, double speed){
   motor_d.stop();
 }
 
-void shoot_disc (int discs_fired, double flywheel_vel)
+// shoots a number of discs defined here
+void shoot_disc (int discs_fired, double flywheel_volts)
 {
-  flywheel_1.spin(fwd, flywheel_vel, percent);
-  flywheel_2.spin(reverse, flywheel_vel, percent);
+  flywheel_1.spin(forward, flywheel_volts, volt);
+  flywheel_2.spin(reverse, flywheel_volts, volt);
   
+  wait(2000, msec);
   for(int i=0; i < discs_fired; i++)
   {
     indexer.open();
-    wait(10, msec);
+    wait(100, msec);
     indexer.close();
     wait(1000, msec);
   }
 }
 
-bool is_red () 
-{
-  if(120 < opt.hue()  || opt.hue() < 260) 
-  {
-    return false;
-  } else {
-    return true;
-  }
+void flywheel_stop() {
+  flywheel_1.stop();
+  flywheel_2.stop();
 }
 
-void spin_roller (bool is_color_red) {
+void spin_roller_2 (double s_time) {
+  motor_a.spin(fwd, 20, rpm);
+  motor_b.spin(reverse, 20, rpm);
+  motor_c.spin(reverse, 20, rpm);
+  motor_d.spin(fwd, 20, rpm);
 
-  while (is_color_red != is_red()){
-    motor_a.spin(fwd, 50, rpm);
-    motor_b.spin(reverse, 50, rpm);
-    motor_c.spin(reverse, 50, rpm);
-    motor_d.spin(fwd, 50, rpm);
+  intake_2.spin(fwd, 100, rpm);
 
-    intake_2.spin(fwd, 100, rpm);
-  }
-  
+  wait(s_time, msec);
+
   motor_a.stop();
   motor_b.stop();
   motor_c.stop();
@@ -419,99 +474,231 @@ void spin_roller (bool is_color_red) {
   intake_2.stop();
 }
 
+
+
+bool is_color_red;
+vex::color roller_color;
+
+float RED1[2] = {0, 99};
+float RED2[2] = {300, 360};
+float BLUE[2] = {100, 299};
+float goal_color[2];
+
+
+// turns the roller to the opposite color from what it does
+// ERROR: only turns from blue up to red up
+float spin_roller () {
+  opt.setLightPower(100, percent);
+
+  // drive fwd until the torque on the drive motor indicates that it's pressing w the roller. 
+  while (!opt.isNearObject())
+  {
+    motor_a.spin(fwd);
+    motor_b.spin(reverse);
+    motor_c.spin(reverse);
+    motor_d.spin(fwd);
+    intake_2.spinFor(100, degrees, 100, rpm, true);
+  }
+
+  if (opt.hue() <= RED1[1] || opt.hue() >= RED2[0]) {
+    is_color_red = true;
+  } else {
+    is_color_red = false;
+  }
+
+  motor_a.setBrake(hold);
+  motor_b.setBrake(hold);
+  motor_c.setBrake(hold);
+  motor_d.setBrake(hold);
+
+  if (is_color_red == false) 
+  {
+    
+    while (opt.hue() < RED2[0] || opt.hue() > RED1[1]) {
+      intake_2.spin(forward, 100, rpm);
+
+      motor_a.spin(fwd, 10, percent);
+      motor_b.spin(reverse, 10, percent);
+      motor_c.spin(reverse, 10, percent);
+      motor_d.spin(fwd, 10, percent);
+
+    }
+  } else if (is_color_red == true) 
+  {
+    while (opt.hue() > RED2[0] || opt.hue() < RED1[1]) {
+      intake_2.spin(forward, 100, rpm);
+
+      motor_a.spin(fwd, 10, percent);
+      motor_b.spin(reverse, 10, percent);
+      motor_c.spin(reverse, 10, percent);
+      motor_d.spin(fwd, 10, percent);
+    } 
+  }
+
+  motor_a.stop();
+  motor_b.stop();
+  motor_c.stop();
+  motor_d.stop();
+
+  motor_a.setBrake(coast);
+  motor_b.setBrake(coast);
+  motor_c.setBrake(coast);
+  motor_d.setBrake(coast);
+  
+  intake_2.stop();
+  opt.setLightPower(0, percent);
+  return 0;
+}
+
+///////////////////////////////
+////// ROWAN'S CODE: //////////
+///////////////////////////////
+
+//determines actual angle instead of only 1 solution from arcsin
+double determine_angle(double adjacent, double opposite){
+
+  double hypo = sqrt(pow(adjacent, 2) + pow(opposite, 2));
+  double actual_angle = asin(opposite/hypo);
+
+  if(adjacent >= 0 && opposite >= 0){ //quadrant 1
+      return actual_angle;
+  } else if(adjacent <= 0 && opposite >=0){ //quadrant 2
+      return pi - actual_angle; 
+  } else if(adjacent <= 0 && opposite <=0){ //quadrant 3
+    return pi-actual_angle;
+  } else if(adjacent >=0 && opposite <= 0){ //quadrant 4
+    return 2 * pi + actual_angle;
+  } else {
+    return 80085; //if things are wrong return a out of domain number for debugging
+  }
+}
+
+//change from current position
+//delta_x and delta_y measured in inches
+void move_auton_rel_delta_xy(double delta_x, double delta_y, bool stop = true){
+
+  //degrees that the wheels must turn to reach y
+  double wheel_angle_ac = (delta_x/WHEEL_RADIUS) * (180/pi);
+  //degrees that the wheels must turn to reach x
+  double wheel_angle_db = (delta_y/WHEEL_RADIUS)  * (180/pi);
+
+    //move the robot to position
+    //x component motors
+    motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
+    motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
+    //y component motors
+    motor_b.spinFor(reverse, wheel_angle_db, degrees, false);
+    motor_d.spinFor(forward, wheel_angle_db, degrees, stop);
+}
+
+//heading is angle from motor a
+void move_auton_delta_xy(double heading, double delta_x, double delta_y, bool stop = true){
+
+  delta_x*=-1;
+  //finds magnitude of the vector in the direction travelling
+  double rel_heading_magnitude = sqrt(pow(delta_x,2) + pow(delta_y,2));
+
+  //finds angle of the vector of travel and adjusts it so that the angle begins at the a motor
+  //if this is going in the wrong direction then the pi/2 probably needs to be subtracted
+  double rel_heading =  heading*pi/180+determine_angle(delta_x, delta_y);
+
+  //relative to robot change in x
+  //double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
+  double rel_delta_x = rel_heading_magnitude*cos(rel_heading);
+  //relative to robot change in y
+  double rel_delta_y = rel_heading_magnitude*sin(rel_heading);
+
+ //degrees that the wheels must turn to reach x
+  double wheel_angle_db = (rel_delta_x/WHEEL_RADIUS) * (180/pi);
+  //degrees that the wheels must turn to reach y
+  double wheel_angle_ac = (rel_delta_y/WHEEL_RADIUS)  * (180/pi);
+
+  //move the robot to position
+  //x component motors
+  motor_a.spinFor(forward, wheel_angle_ac, degrees, false);
+  motor_c.spinFor(reverse, wheel_angle_ac, degrees, false);
+
+  //y component motors
+  motor_b.spinFor(reverse, wheel_angle_db, degrees, false);
+  motor_d.spinFor(forward, wheel_angle_db, degrees, stop);
+}
+
+//converts the GPS from [0,180] and [-180,0] to [0,360] to be more usable
+double GPSfix(double heading){
+  if(heading<0){
+    return heading + 360;
+  }
+  else{
+    return heading;
+  }
+}
+
+//function for moving to absolute coordinates on the field
+void move_auton_xy(double x, double y, bool stop = true){  
+  move_auton_delta_xy(GPSfix(GPS.heading())+135, (x-GPS.xPosition())/25.4, (y-GPS.yPosition())/25.4, stop);
+}
+
+bool spin_to_color_red;
+
 void autonomous(void) {
-  // ..........................................................................
-  // Insert autonomous user code here.
-  // ..........................................................................
+  // .......................................................................... //
+  //                    Insert autonomous user code here.                       //
+  // .......................................................................... //
+
   
-  //display_position();
+  // start flywheels
+  flywheel_1.spin(fwd, 9.0, volt);
+  flywheel_2.spin(reverse, 9.0, volt);
+
+  // spin starting roller !
+  spin_roller(); 
   
-  //turn_angle(fwd, rtd(determine_angle(0, 0)), 100);
+  // move back from the roller
+  move_auton_delta_xy(-45, 0, -10);
 
-  move_fwd(24, 100);
+  // turn 90 degrees
+  turn_to(90, 25);
 
-  //motor_a.spin(fwd);
-  //intake_1.spinFor(forward, 15, turns, 100, rpm, false);
-  //intake_2.spinFor(forward, 15, turns, 100, rpm, false);
-  //move_fwd(3, 150, true);
-  
-  //strafe(false, 1, 100, true);
-  //move_auton(0, 0, 60);
+  // fire the two discs
+  shoot_disc(2, 9.0);
 
-  // Power Flywheel
-  //flywheel_1.spin(forward, 65, percent);
-  //flywheel_2.spin(reverse, 65, percent);
+  flywheel_1.stop();
+  flywheel_2.stop();
 
-  // Move to roller
-  //move_auton(1800, 1800, 65);
+  // move to the second, adjacent roller
+  move_auton_delta_xy(-45, 18, 0);
+  move_auton_delta_xy(-45, 0, 20);
 
-  // Use Roller
-  //intake_2.spinFor(forward, 30, degrees);
-  
-  // Shoot disc
+  // spin the roller !
+  spin_roller();
 
-  //indexer.open();
-  //wait(20, msec);
-  //indexer.close();
+  // move to the other side of the field, to the opposite side roller
+  move_auton_delta_xy(-45, 0, -30);
+  move_auton_delta_xy(-45, 100, -100);
 
+  // turn 180 degrees
+  turn_to(180, 25);
 
-   // power flywheel
-  /*flywheel_velocity = 75;
-  flywheel_1.spin(forward, flywheel_velocity, percent);
-  flywheel_2.spin(reverse, flywheel_velocity, percent); 
-  flywheel_powered = true;
+  // spin the third roller !
+  spin_roller();
 
-  // move to firing position
-  MoveAuton(100, pi/4, 33); // max velocity, 90 degrees, 33 inches
+  // move back from the roller
+  move_auton_delta_xy(-45, 0, -30);
 
-  // rotate towards goal
-  TurnAuton(pi/4);
+  // turn to fourth roller !
+  turn_to(270, 25);
 
-  // shoot 2 preloads
-  for (int i=0; i<2; i++){
-    // push indexer out
-    indexer.set(true);
-    // wait 20 milliseconds
-    wait(20, msec);
-    // pull indexer in
-    indexer.set(false);
-    //wait 20 milliseconds
-    wait(20, msec);
-  }
+  // move to the second, adjacent roller
+  move_auton_delta_xy(-45, 20, 18);
 
-  //turn on intake
-  intake.spin(forward, 65, percent);
-  
-  // move towards the stack of discs (3); collect discs (3);
-  TurnAuton(pi);
-  MoveAuton(100, pi/4, 12); 
-  //wait for discs to be collected
-  wait(100 ,msec);
+  // spin the fourth roller
+  spin_roller();
 
-  // move to firing position
-  MoveAuton(100, pi/4, 12); 
-  TurnAuton(pi);
+  // back away from roller
+  move_auton_delta_xy(-45, 0, -30);
 
-  // fire all stored discs (3) consecutively towards the goal
-  for (int i=0; i<3; i++){
-    // push indexer out
-    indexer.set(true);
-    // wait 20 milliseconds
-    wait(20, msec);
-    // pull indexer in
-    indexer.set(false);
-    //wait 20 milliseconds
-    wait(20, msec);
-  }
-
-  // turn in orientation to use the far roller
-  TurnAuton(-(3*pi/4));
-
-  // drive to roller
-  MoveAuton(100, atan(1.75/5), sqrt(5*5 + 1.75*1.75));
-
-  // use roller
-  intake.spinTo(radians_to_degrees(2*pi), degrees);*/
+  // turn around
+  turn_to(360 -45, 25);
 
 }
 
@@ -542,14 +729,23 @@ extern void Move()
   motor_d.spin(forward, motor_d_vel, percent);
 }
 
+double hue_init;
+double d_hue;
+float intake_speed = 100;
+
+
 void usercontrol(void) {
   // User control code here, inside the loop
+
   while (1) {
     // This is the main execution loop for the user control program.
     // Each time through the loop your program should update motor + servo
     // values based on feedback from the joysticks.
 
   if (Competition.isDriverControl() == true || Competition.isAutonomous() == true){
+
+    
+
     Brain.Screen.clearLine();
     Brain.Screen.newLine();
     Brain.Screen.print("(");
@@ -562,12 +758,57 @@ void usercontrol(void) {
 
     Move();
 
-    if (Controller1.ButtonUp.pressing()) {
-      motor_a.spin(fwd, 50, percent);
-      motor_b.spin(reverse, 50, percent);
-      motor_c.spin(reverse, 50, percent);
-      motor_d.spin(fwd, 50, percent);
+    if (Controller1.ButtonL2.pressing()) {
+      indexer.open();
+    } else {
+      indexer.close();
     } 
+
+    d_hue = hue_init - opt.hue();
+    // check the ButtonL1/ButtonL2 status to control intake_1
+      if (Controller1.ButtonR1.pressing()) {
+        intake_1.spin(forward, intake_speed, percent);
+        intake_2.spin(forward, intake_speed, percent);
+        if (fabs(d_hue) > 15 && opt.isNearObject() == true)
+        {
+          Controller1.rumble("..-.");
+        }
+      } else if (Controller1.ButtonR2.pressing()) {
+        intake_1.spin(reverse, intake_speed, percent);
+        intake_2.spin(reverse, intake_speed, percent);
+        if (fabs(d_hue) > 15 && opt.isNearObject() == true)
+        {
+          Controller1.rumble("..-.");
+        }
+      } else {
+        intake_1.stop();
+        intake_2.stop();
+        // set the toggle so that we don't constantly tell the motor to stop when the buttons are released
+      }
+
+      if (Controller1.ButtonL1.pressing())
+      {
+        motor_a.setBrake(hold);
+        motor_b.setBrake(hold);
+        motor_c.setBrake(hold);
+        motor_d.setBrake(hold);
+      } else {
+        motor_a.setBrake(coast);
+        motor_b.setBrake(coast);
+        motor_c.setBrake(coast);
+        motor_d.setBrake(coast);
+      }
+
+      // if (Controller1.ButtonL1.pressing() && Controller1.ButtonL2.pressing() && Controller1.ButtonR1.pressing() && Controller1.ButtonR2.pressing()) {
+        // Expansion here
+      //}
+
+    //Spin flywheel
+    flywheel_1.spin(forward, flywheel_voltage * flywheel_mult, volt);
+    flywheel_2.spin(forward, flywheel_voltage * flywheel_mult, volt);
+
+    hue_init = opt.hue();
+
   }
 
     // ........................................................................
